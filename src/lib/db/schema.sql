@@ -1,5 +1,5 @@
--- Susu SQLite schema (from PRD)
--- Not wired up yet — reference only for scaffolding.
+-- Susu SQLite schema
+-- reference only for scaffolding.
 
 -- users (id, name, invite_code_used)
 CREATE TABLE IF NOT EXISTS users (

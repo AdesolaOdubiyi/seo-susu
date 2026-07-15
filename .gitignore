@@ -49,5 +49,6 @@ next-env.d.ts
 *.sqlite3
 /data/
 
-AGENTS.MD
-CLAUDE.MD
+# local agent / Claude instructions
+AGENTS.md
+CLAUDE.md

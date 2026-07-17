@@ -1,9 +1,9 @@
 # LLM
 
-Context packager and FAQ for the Susu chat assistant.
-
-- `buildChatContext` — packs live status → agreement → general rules into a system prompt
+- `buildChatContext` — packs live status → agreement → general rules
 - `faq.ts` — general Susu Q&A from `docs/CHANGE_RULES.md`
-- `fixtures/` — sample status/agreement for tests without backend APIs
+- `statusAdapter.ts` — maps `getGroupStatus` + open polls → `LiveGroupStatus`
+- `chat.ts` / `groq.ts` — grounded Groq replies for `POST /api/chat`
+- `fixtures/` — sample data for tests without a live DB
 
-Groq `/api/chat` is Branch 3.
+Agreement snapshots are `null` until backend adds `group_agreements`. Chat still answers from live status + general FAQ.

@@ -1,11 +1,10 @@
 import { randomInt } from "node:crypto";
 import { getDb } from "./index";
-import { nextDueDate } from "./schedule";
+import { nextRecipient, type PolicyMember } from "@/lib/rules";
 import {
   ApiError,
   GroupRow,
   MemberWithUser,
-  Schedule,
   UserRow,
 } from "./types";
 
@@ -21,31 +20,17 @@ function generateInviteCode(): string {
 }
 
 /**
- * Create a group. The creator is rotation position 1 and may pre-register
- * the member list in rotation order; those members later "log in" with
- * their name + the group's invite code.
+ * Organizer creates an empty group in the 'setup' phase and shares the
+ * invite code. Terms (amount, cadence, rotation order, Round 1 date) are
+ * decided later by unanimous setup proposals — the organizer has no special
+ * powers beyond opening setup.
  */
 export function createGroup(input: {
   name: string;
-  contributionAmount: number;
-  schedule: Schedule;
   creatorName: string;
-  memberNames?: string[];
 }): { group: GroupRow; creator: UserRow } {
-  const memberNames = input.memberNames ?? [];
-  const allNames = [input.creatorName, ...memberNames].map((n) =>
-    n.trim().toLowerCase(),
-  );
-  if (allNames.some((n) => n === "")) {
-    throw new ApiError("Member names must be non-empty strings");
-  }
-  if (new Set(allNames).size !== allNames.length) {
-    throw new ApiError(
-      "Member names must be unique within a group (names are how members log in)",
-    );
-  }
-
   const db = getDb();
+
   return db.transaction(() => {
     let inviteCode = generateInviteCode();
     while (
@@ -55,23 +40,10 @@ export function createGroup(input: {
     }
 
     const groupId = db
-      .prepare(
-        `INSERT INTO groups (name, invite_code, contribution_amount, schedule, round_due_at)
-         VALUES (?, ?, ?, ?, ?)`,
-      )
-      .run(
-        input.name,
-        inviteCode,
-        input.contributionAmount,
-        input.schedule,
-        nextDueDate(input.schedule).toISOString(),
-      ).lastInsertRowid as number;
+      .prepare("INSERT INTO groups (name, invite_code) VALUES (?, ?)")
+      .run(input.name, inviteCode).lastInsertRowid as number;
 
     const creatorId = addMember(groupId, input.creatorName, inviteCode);
-    for (const name of memberNames) {
-      addMember(groupId, name.trim(), null);
-    }
-
     return { group: getGroup(groupId), creator: getUser(creatorId) };
   })();
 }
@@ -104,10 +76,10 @@ export function addMember(
 }
 
 /**
- * Name + invite code is the MVP auth. If the name matches an existing
- * member, this is a login. Otherwise the user is added to the end of the
- * rotation — but only before the rotation starts; mid-cycle joins require
- * an approved 'add_member' poll.
+ * Name + invite code is the MVP auth. A matching member name logs in;
+ * otherwise the user joins at the end of the provisional rotation — only
+ * while the group is still in setup. Once past setup, joining requires an
+ * approved 'add_member' poll.
  */
 export function joinGroup(input: {
   inviteCode: string;
@@ -136,16 +108,9 @@ export function joinGroup(input: {
       return { group, user, joined: false };
     }
 
-    const rotationStarted =
-      group.current_cycle > 1 ||
-      group.current_round > 1 ||
-      group.cycle_complete === 1 ||
-      db
-        .prepare("SELECT 1 FROM contributions WHERE group_id = ? LIMIT 1")
-        .get(group.id) !== undefined;
-    if (rotationStarted) {
+    if (group.phase !== "setup") {
       throw new ApiError(
-        "This group's rotation has already started. Ask a member to open an 'add_member' poll to join mid-cycle.",
+        "This group has finished setup. Ask a member to open an 'add_member' poll to join.",
         409,
       );
     }
@@ -212,16 +177,26 @@ export function getActiveMembers(groupId: number): MemberWithUser[] {
   return getMembers(groupId).filter((m) => m.active === 1);
 }
 
+/** Map a DB member row to the shape the shared rules policies expect. */
+export function toPolicyMember(m: MemberWithUser): PolicyMember {
+  return {
+    userId: m.user_id,
+    name: m.name,
+    rotationPosition: m.rotation_position,
+    active: m.active === 1,
+    payoutReceivedThisCycle: m.payout_received === 1,
+  };
+}
+
 /**
- * This round's payout recipient: the first active member in rotation order
- * who hasn't received a payout this cycle. Robust to drop-outs — if the
- * next-in-line leaves, the following unpaid member is up.
+ * This round's payout recipient: the next unpaid active member in rotation
+ * order (shared policy). Null once the cycle is complete.
  */
 export function getCurrentRecipient(group: GroupRow): MemberWithUser | null {
-  if (group.cycle_complete === 1) return null;
-  return (
-    getActiveMembers(group.id).find((m) => m.payout_received === 0) ?? null
-  );
+  if (group.phase === "cycle_complete") return null;
+  const members = getMembers(group.id);
+  const next = nextRecipient(members.map(toPolicyMember));
+  return members.find((m) => m.user_id === next?.userId) ?? null;
 }
 
 export function requireActiveMember(

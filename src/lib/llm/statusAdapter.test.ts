@@ -7,8 +7,10 @@ const baseStatus: GroupStatus = {
     id: 1,
     name: "Friday Circle",
     inviteCode: "ABC123",
+    phase: "live",
     contributionAmount: 50,
     schedule: "weekly",
+    round1StartAt: "2026-07-13T12:00:00.000Z",
     currentCycle: 1,
     currentRound: 2,
     cycleComplete: false,
@@ -40,7 +42,10 @@ const baseStatus: GroupStatus = {
     daysUntilDeadline: 2,
     stalled: false,
     openPolls: 1,
+    payoutBlocked: true,
+    payoutBlockedReason: "open_poll:9",
   },
+  activeAgreement: null,
 };
 
 describe("toLiveGroupStatus", () => {

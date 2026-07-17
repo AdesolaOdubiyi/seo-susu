@@ -11,18 +11,17 @@ import {
 
 /**
  * POST /api/polls
- * Propose a group change requiring unanimous approval from eligible voters
- * (active members; a remove_member target can't veto their own removal).
- * Polls never block payouts.
- * Body: { groupId, proposedBy, changeType, changeDetails, deadline? }
- *   changeType: 'contribution_amount' | 'schedule' | 'add_member' | 'remove_member'
- *   changeDetails: { amount: 75 } | { schedule: "monthly" } |
- *     { userName: "Ama" } |
- *     { userId: 3, amount: 75, payoutDate: "..." } — removing a member
- *       requires proposing the group's new terms: the new payment amount
- *       and the new payout due date
- *   deadline: optional ISO date string (defaults to the next scheduled
- *     payment date)
+ * Propose a change; unanimous approval among eligible voters required
+ * (docs/CHANGE_RULES.md). Deadlines are set by the contract: setup and
+ * start_cycle proposals get 7 days; live polls expire the day before the
+ * round due date. Open polls block payout, never contributions.
+ *
+ * Body: { groupId, proposedBy, changeType, changeDetails }
+ *   setup phase: 'contribution_amount' { amount } | 'schedule' { schedule } |
+ *     'rotation_order' { orderedUserIds } | 'round1_start_date' { startDate? }
+ *   live: 'contribution_amount' | 'schedule' | 'add_member' { userName } |
+ *     'remove_member' { targetUserId, newAmount, newPayoutDate } |
+ *     'start_cycle' {} (cycle complete only)
  */
 export async function POST(req: NextRequest) {
   try {
@@ -32,7 +31,6 @@ export async function POST(req: NextRequest) {
       proposedBy: requireNumber(body, "proposedBy"),
       changeType: requireString(body, "changeType") as ChangeType,
       changeDetails: body.changeDetails,
-      deadline: typeof body.deadline === "string" ? body.deadline : undefined,
     });
     return NextResponse.json({ poll }, { status: 201 });
   } catch (err) {

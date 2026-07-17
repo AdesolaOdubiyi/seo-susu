@@ -3,14 +3,35 @@ import {
   getActiveMembers,
   getCurrentRecipient,
   getGroup,
-  requireActiveMember,
 } from "./groups";
 import { nextDueDate } from "./schedule";
+import {
+  calculatePot,
+  canSettlePayout,
+  type OpenPollSummary,
+} from "@/lib/rules";
 import { ApiError, GroupRow } from "./types";
 
-/** When the current round's payment is due. */
-export function getRoundDeadline(group: GroupRow): Date {
-  return new Date(group.round_due_at);
+/**
+ * Auto-reject open polls that are past their deadline (contract: on expiry,
+ * old terms stay and payout unblocks). Lazy — run before any decision that
+ * depends on open polls.
+ */
+export function expireOverduePolls(groupId: number): void {
+  getDb()
+    .prepare(
+      "UPDATE polls SET status = 'rejected' WHERE group_id = ? AND status = 'open' AND deadline < ?",
+    )
+    .run(groupId, new Date().toISOString());
+}
+
+export function listOpenPolls(groupId: number): OpenPollSummary[] {
+  return getDb()
+    .prepare(
+      `SELECT id, change_type AS changeType, deadline, status
+       FROM polls WHERE group_id = ? AND status = 'open' ORDER BY id`,
+    )
+    .all(groupId) as OpenPollSummary[];
 }
 
 export interface PayoutResult {
@@ -23,25 +44,24 @@ export interface PayoutResult {
 }
 
 /**
- * Simulate the payout and advance the rotation once every active member has
- * contributed this round. The payout is never blocked by polls — the pot is
- * (active members x amount), so removing a non-payer shrinks it and lets the
- * round settle.
+ * Simulate the payout and advance the rotation, but only once the round is
+ * settled per the shared policy: every active member contributed AND no
+ * open poll is blocking (expired polls are auto-rejected first).
  *
- * Called after every event that could settle a round: a contribution, a
- * member being voted out, or a member dropping out. Returns null when the
- * round isn't ready to advance.
+ * Called after every event that could unblock a round: a contribution, a
+ * poll being settled, or a member dropping out. Returns null when the round
+ * isn't ready to advance.
  */
 export function advanceRoundIfComplete(groupId: number): PayoutResult | null {
   const db = getDb();
 
   return db.transaction(() => {
     const group = getGroup(groupId);
-    if (group.cycle_complete === 1) return null;
+    if (group.phase !== "live" || !group.schedule) return null;
+
+    expireOverduePolls(groupId);
 
     const active = getActiveMembers(groupId);
-    if (active.length < 2) return null;
-
     const paid = new Set(
       (
         db
@@ -54,10 +74,24 @@ export function advanceRoundIfComplete(groupId: number): PayoutResult | null {
         }>
       ).map((r) => r.user_id),
     );
-    if (!active.every((m) => paid.has(m.user_id))) return null;
+
+    const settle = canSettlePayout({
+      activeMemberCount: active.length,
+      allActiveContributed: active.every((m) => paid.has(m.user_id)),
+      cycleComplete: false,
+      openPolls: listOpenPolls(groupId),
+    });
+    if (!settle.ok) return null;
 
     const recipient = getCurrentRecipient(group);
-    if (!recipient) return null;
+    if (!recipient) {
+      // No unpaid active member left (e.g. the last unpaid member was
+      // removed) — the cycle is complete.
+      db.prepare("UPDATE groups SET phase = 'cycle_complete' WHERE id = ?").run(
+        groupId,
+      );
+      return null;
+    }
 
     db.prepare(
       "UPDATE group_members SET payout_received = 1 WHERE group_id = ? AND user_id = ?",
@@ -67,18 +101,25 @@ export function advanceRoundIfComplete(groupId: number): PayoutResult | null {
       (m) => m.user_id === recipient.user_id || m.payout_received === 1,
     );
     if (everyonePaid) {
-      // Cycle over. The group stays intact; any member may start a new cycle.
-      db.prepare("UPDATE groups SET cycle_complete = 1 WHERE id = ?").run(groupId);
+      // Cycle over. The group stays intact; the next cycle needs a unanimous
+      // start_cycle poll (nobody starts Cycle 2 alone).
+      db.prepare("UPDATE groups SET phase = 'cycle_complete' WHERE id = ?").run(
+        groupId,
+      );
     } else {
+      // Keep the payment rhythm: next due is one cadence interval after the
+      // old due date, or after now if the round settled late.
+      const oldDue = group.round_due_at ? new Date(group.round_due_at) : new Date();
+      const base = oldDue.getTime() > Date.now() ? oldDue : new Date();
       db.prepare(
         `UPDATE groups SET current_round = current_round + 1, round_due_at = ?
          WHERE id = ?`,
-      ).run(nextDueDate(group.schedule).toISOString(), groupId);
+      ).run(nextDueDate(group.schedule, base).toISOString(), groupId);
     }
 
     return {
       recipient: { userId: recipient.user_id, name: recipient.name },
-      amount: group.contribution_amount * active.length,
+      amount: calculatePot(active.length, group.contribution_amount ?? 0),
       cycle: group.current_cycle,
       round: group.current_round,
       cycleComplete: everyonePaid,
@@ -87,32 +128,25 @@ export function advanceRoundIfComplete(groupId: number): PayoutResult | null {
 }
 
 /**
- * Start the next cycle once the current one is complete. Any active member
- * can do this (no admin role). Payout flags reset; inactive members stay out.
+ * Begin the next cycle after a unanimous, agreement-accepting start_cycle
+ * poll (see polls.ts). Payout flags reset; inactive members stay out.
  */
-export function startNewCycle(groupId: number, userId: number): GroupRow {
+export function beginNextCycle(groupId: number): GroupRow {
   const db = getDb();
+  const group = getGroup(groupId);
+  if (group.phase !== "cycle_complete" || !group.schedule) {
+    throw new ApiError("The current cycle isn't complete yet", 409);
+  }
 
-  return db.transaction(() => {
-    const group = getGroup(groupId);
-    requireActiveMember(groupId, userId);
-    if (group.cycle_complete !== 1) {
-      throw new ApiError(
-        "The current cycle isn't complete yet — a new cycle can start once every member has received a payout",
-        409,
-      );
-    }
+  db.prepare(
+    `UPDATE groups
+     SET current_cycle = current_cycle + 1, current_round = 1,
+         phase = 'live', round_due_at = ?
+     WHERE id = ?`,
+  ).run(nextDueDate(group.schedule).toISOString(), groupId);
+  db.prepare(
+    "UPDATE group_members SET payout_received = 0 WHERE group_id = ?",
+  ).run(groupId);
 
-    db.prepare(
-      `UPDATE groups
-       SET current_cycle = current_cycle + 1, current_round = 1,
-           cycle_complete = 0, round_due_at = ?
-       WHERE id = ?`,
-    ).run(nextDueDate(group.schedule).toISOString(), groupId);
-    db.prepare(
-      "UPDATE group_members SET payout_received = 0 WHERE group_id = ?",
-    ).run(groupId);
-
-    return getGroup(groupId);
-  })();
+  return getGroup(groupId);
 }

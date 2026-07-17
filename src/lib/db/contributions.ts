@@ -2,15 +2,26 @@ import { getDb } from "./index";
 import {
   getActiveMembers,
   getCurrentRecipient,
-  getGroup,
   getMembers,
   requireActiveMember,
 } from "./groups";
 import {
   advanceRoundIfComplete,
-  getRoundDeadline,
+  expireOverduePolls,
+  listOpenPolls,
   PayoutResult,
 } from "./rotation";
+import {
+  getAcceptances,
+  getCurrentAgreement,
+  syncGroupPhase,
+} from "./agreements";
+import {
+  calculatePot,
+  canRecordContribution,
+  canSettlePayout,
+  isStalled,
+} from "@/lib/rules";
 import { ApiError, ContributionRow } from "./types";
 
 export interface ContributionResult {
@@ -19,11 +30,26 @@ export interface ContributionResult {
   roundComplete: boolean;
   /** Set when this contribution triggered the round's payout. */
   payout: PayoutResult | null;
+  /** True when the round is fully paid but an open poll is blocking the payout. */
+  waitingOnPoll: boolean;
 }
+
+const CONTRIBUTION_BLOCKED: Record<string, string> = {
+  phase_setup: "The group is still in setup — terms must be agreed first",
+  phase_awaiting_signatures:
+    "The agreement is out for signatures — contributions start once everyone signs and Round 1 begins",
+  phase_scheduled: "Round 1 hasn't started yet",
+  phase_cycle_complete:
+    "This cycle is complete — the next cycle needs an approved start_cycle poll",
+  need_two_active_members:
+    "The rotation needs at least 2 active members before contributions can start",
+  already_contributed: "Already contributed for this round",
+};
 
 /**
  * Mark a simulated contribution as sent for the group's current round, then
- * advance the rotation if that settled the round.
+ * advance the rotation if that settled the round. Contributions are allowed
+ * while polls are open and after the due date — only the payout waits.
  */
 export function recordContribution(
   groupId: number,
@@ -32,36 +58,34 @@ export function recordContribution(
   const db = getDb();
 
   return db.transaction(() => {
-    const group = getGroup(groupId);
+    const group = syncGroupPhase(groupId);
     requireActiveMember(groupId, userId);
 
-    if (group.cycle_complete === 1) {
+    const already =
+      db
+        .prepare(
+          `SELECT 1 FROM contributions
+           WHERE group_id = ? AND user_id = ? AND cycle_number = ? AND round_number = ?`,
+        )
+        .get(groupId, userId, group.current_cycle, group.current_round) !==
+      undefined;
+
+    const allowed = canRecordContribution({
+      phase: group.phase,
+      activeMemberCount: getActiveMembers(groupId).length,
+      alreadyContributedThisRound: already,
+    });
+    if (!allowed.ok) {
       throw new ApiError(
-        "This cycle is complete — start a new cycle before contributing",
-        409,
-      );
-    }
-    if (getActiveMembers(groupId).length < 2) {
-      throw new ApiError(
-        "The rotation needs at least 2 active members before contributions can start",
+        CONTRIBUTION_BLOCKED[allowed.reason] ?? allowed.reason,
         409,
       );
     }
 
-    try {
-      db.prepare(
-        `INSERT INTO contributions (group_id, user_id, cycle_number, round_number, status)
-         VALUES (?, ?, ?, ?, 'confirmed')`,
-      ).run(groupId, userId, group.current_cycle, group.current_round);
-    } catch (err) {
-      if (
-        err instanceof Error &&
-        err.message.includes("UNIQUE constraint failed")
-      ) {
-        throw new ApiError("Already contributed for this round", 409);
-      }
-      throw err;
-    }
+    db.prepare(
+      `INSERT INTO contributions (group_id, user_id, cycle_number, round_number, status)
+       VALUES (?, ?, ?, ?, 'confirmed')`,
+    ).run(groupId, userId, group.current_cycle, group.current_round);
 
     const contribution = db
       .prepare(
@@ -80,7 +104,13 @@ export function recordContribution(
       paidUserIds.has(m.user_id),
     );
 
-    return { contribution, roundComplete, payout };
+    return {
+      contribution,
+      roundComplete,
+      payout,
+      waitingOnPoll:
+        roundComplete && payout === null && listOpenPolls(groupId).length > 0,
+    };
   })();
 }
 
@@ -103,8 +133,10 @@ export interface GroupStatus {
     id: number;
     name: string;
     inviteCode: string;
+    phase: string;
     contributionAmount: number;
     schedule: string;
+    round1StartAt: string | null;
     currentCycle: number;
     currentRound: number;
     cycleComplete: boolean;
@@ -122,17 +154,33 @@ export interface GroupStatus {
     contributed: number;
     expected: number;
     potAmount: number;
+    /** Round due date once live; before that, the next date that matters
+     *  (Round 1 start, signing deadline, or a placeholder a week out). */
     deadline: string;
     daysUntilDeadline: number;
-    /** Past deadline with contributions still missing. */
+    /** Past due with contributions still missing (status only, no penalty). */
     stalled: boolean;
     openPolls: number;
+    payoutBlocked: boolean;
+    payoutBlockedReason: string | null;
   };
+  activeAgreement: {
+    id: number;
+    version: number;
+    status: string;
+    contentHash: string;
+    signingDeadline: string | null;
+    effectiveAt: string | null;
+    signedBy: number[];
+    renderedText: string;
+  } | null;
 }
 
-/** Full rotation/contribution snapshot for the status endpoint (and chat grounding). */
+/** Full snapshot for the status endpoint, dashboard, and chat grounding. */
 export function getGroupStatus(groupId: number): GroupStatus {
-  const group = getGroup(groupId);
+  const group = syncGroupPhase(groupId);
+  expireOverduePolls(groupId);
+
   const members = getMembers(groupId);
   const activeMembers = members.filter((m) => m.active === 1);
   const paidUserIds = new Set(
@@ -140,30 +188,38 @@ export function getGroupStatus(groupId: number): GroupStatus {
       (c) => c.user_id,
     ),
   );
-  const recipient = getCurrentRecipient(group);
-
-  const deadline = getRoundDeadline(group);
-  const msLeft = deadline.getTime() - Date.now();
   const allContributed = activeMembers.every((m) => paidUserIds.has(m.user_id));
-  const openPolls = (
-    getDb()
-      .prepare(
-        "SELECT COUNT(*) AS n FROM polls WHERE group_id = ? AND status = 'open'",
-      )
-      .get(groupId) as { n: number }
-  ).n;
-  const stalled = group.cycle_complete !== 1 && msLeft < 0 && !allContributed;
+  const recipient = getCurrentRecipient(group);
+  const openPolls = listOpenPolls(groupId);
+  const agreement = getCurrentAgreement(groupId);
+
+  const live = group.phase === "live";
+  const settle = canSettlePayout({
+    activeMemberCount: activeMembers.length,
+    allActiveContributed: allContributed,
+    cycleComplete: group.phase === "cycle_complete",
+    openPolls,
+  });
+
+  const deadline =
+    group.round_due_at ??
+    group.round1_start_at ??
+    agreement?.signing_deadline ??
+    new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const msLeft = new Date(deadline).getTime() - Date.now();
 
   return {
     group: {
       id: group.id,
       name: group.name,
       inviteCode: group.invite_code,
-      contributionAmount: group.contribution_amount,
-      schedule: group.schedule,
+      phase: group.phase,
+      contributionAmount: group.contribution_amount ?? 0,
+      schedule: group.schedule ?? "",
+      round1StartAt: group.round1_start_at,
       currentCycle: group.current_cycle,
       currentRound: group.current_round,
-      cycleComplete: group.cycle_complete === 1,
+      cycleComplete: group.phase === "cycle_complete",
     },
     members: members.map((m) => ({
       userId: m.user_id,
@@ -179,11 +235,32 @@ export function getGroupStatus(groupId: number): GroupStatus {
     round: {
       contributed: activeMembers.filter((m) => paidUserIds.has(m.user_id)).length,
       expected: activeMembers.length,
-      potAmount: group.contribution_amount * activeMembers.length,
-      deadline: deadline.toISOString(),
+      potAmount: calculatePot(activeMembers.length, group.contribution_amount ?? 0),
+      deadline,
       daysUntilDeadline: Math.ceil(msLeft / (24 * 60 * 60 * 1000)),
-      stalled,
-      openPolls,
+      stalled:
+        live && group.round_due_at
+          ? isStalled({
+              roundDueAt: group.round_due_at,
+              missingActiveContributions: !allContributed,
+              cycleComplete: false,
+            })
+          : false,
+      openPolls: openPolls.length,
+      payoutBlocked: live && !settle.ok,
+      payoutBlockedReason: live && !settle.ok ? settle.reason : null,
     },
+    activeAgreement: agreement
+      ? {
+          id: agreement.id,
+          version: agreement.version,
+          status: agreement.status,
+          contentHash: agreement.content_hash,
+          signingDeadline: agreement.signing_deadline,
+          effectiveAt: agreement.effective_at,
+          signedBy: getAcceptances(agreement.id).map((a) => a.user_id),
+          renderedText: agreement.rendered_text,
+        }
+      : null,
   };
 }

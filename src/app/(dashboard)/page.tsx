@@ -1,49 +1,91 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getMemberships, type Membership } from "@/lib/api/session";
 
-// Temporary home: entry point for the demo. The real create/join flow and
-// multi-group list land in a later step (see docs/PLAN.md).
-export default function DashboardPage() {
+export default function HomePage() {
   const router = useRouter();
+  const [memberships, setMemberships] = useState<Membership[]>([]);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // localStorage is client-only, so we hydrate memberships after mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMemberships(getMemberships());
+  }, []);
 
   const loadDemo = async () => {
     setBusy(true);
-    setError(null);
     try {
       const res = await fetch("/api/dev/seed", { method: "POST" });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Seed failed");
-      router.push(`/group/${data.groupId}`);
-    } catch (e) {
-      setError((e as Error).message);
+      if (res.ok) router.push(`/group/${data.groupId}`);
+    } finally {
       setBusy(false);
     }
   };
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center p-6">
-      <h1 className="text-3xl font-bold">Susu</h1>
-      <p className="mt-2 text-neutral-500">
-        Save together. Take turns getting the pot.
-      </p>
+    <main className="mx-auto max-w-md p-6">
+      <header className="mt-6">
+        <h1 className="text-3xl font-bold">Susu</h1>
+        <p className="mt-1 text-neutral-500">
+          Save together. Take turns getting the pot.
+        </p>
+      </header>
 
-      <button
-        onClick={loadDemo}
-        disabled={busy}
-        className="mt-8 w-full rounded-xl bg-neutral-900 py-3.5 font-semibold text-white disabled:opacity-50"
-      >
-        {busy ? "Setting up a demo group…" : "Load a live demo group"}
-      </button>
+      {memberships.length > 0 && (
+        <section className="mt-8">
+          <h2 className="mb-2 text-sm font-semibold text-neutral-500">
+            Your groups
+          </h2>
+          <ul className="space-y-2">
+            {memberships.map((m) => (
+              <li key={m.groupId}>
+                <Link
+                  href={`/group/${m.groupId}`}
+                  className="flex items-center justify-between rounded-xl border border-neutral-200 p-4 hover:bg-neutral-50"
+                >
+                  <span>
+                    <span className="font-semibold">{m.groupName}</span>
+                    <span className="block text-xs text-neutral-500">
+                      you are {m.name}
+                    </span>
+                  </span>
+                  <span className="text-neutral-300">›</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
-      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+      <section className="mt-8 space-y-3">
+        <Link
+          href="/create"
+          className="block w-full rounded-xl bg-neutral-900 py-3.5 text-center font-semibold text-white"
+        >
+          Start a susu
+        </Link>
+        <Link
+          href="/join"
+          className="block w-full rounded-xl border border-neutral-300 py-3.5 text-center font-semibold"
+        >
+          Join with a code
+        </Link>
+      </section>
 
-      <p className="mt-4 text-center text-xs text-neutral-400">
-        Spins up “Sunday Savers” mid-round so you can see a payout fire.
-      </p>
+      <div className="mt-8 border-t border-neutral-200 pt-4 text-center">
+        <button
+          onClick={loadDemo}
+          disabled={busy}
+          className="text-xs font-medium text-neutral-400 underline disabled:opacity-50"
+        >
+          {busy ? "Setting up…" : "Dev · load a live demo group"}
+        </button>
+      </div>
     </main>
   );
 }

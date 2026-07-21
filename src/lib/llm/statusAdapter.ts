@@ -1,8 +1,10 @@
 import { getGroupStatus, type GroupStatus } from "@/lib/db/contributions";
 import { getDb } from "@/lib/db";
+import { getCurrentAgreement } from "@/lib/db/agreements";
+import type { AgreementRow } from "@/lib/db/types";
 import type { Cadence, OpenPollSummary } from "@/lib/rules";
 import { canSettlePayout } from "@/lib/rules";
-import type { LiveGroupStatus } from "./types";
+import type { AgreementSnapshot, LiveGroupStatus } from "./types";
 
 function asCadence(schedule: string): Cadence {
   if (schedule === "weekly" || schedule === "biweekly" || schedule === "monthly") {
@@ -76,12 +78,52 @@ export function toLiveGroupStatus(
   };
 }
 
-/**
- * Load live status for chat. Agreement tables are not wired yet → null agreement
- * is handled by buildChatContext.
- */
+/** Load live status for chat grounding (highest-priority context tier). */
 export function loadLiveGroupStatus(groupId: number): LiveGroupStatus {
   const status = getGroupStatus(groupId);
   const openPolls = listOpenPolls(groupId);
   return toLiveGroupStatus(status, openPolls);
+}
+
+/** The structured terms stored in an agreement's terms_json. */
+interface AgreementTerms {
+  groupName: string;
+  contributionAmount: number | null;
+  cadence: Cadence;
+  expectedPot: number;
+  round1StartDate: string | null;
+  members: Array<{ userId: number; name: string; rotationPosition: number }>;
+  disclaimer: string;
+}
+
+/**
+ * Map a stored agreement row into the LLM AgreementSnapshot shape. The signed
+ * terms live in terms_json; effectiveAt and contentHash come from the row.
+ * Pure (no DB) so the field mapping is unit-testable.
+ */
+export function agreementSnapshotFromRow(row: AgreementRow): AgreementSnapshot {
+  const terms = JSON.parse(row.terms_json) as AgreementTerms;
+  return {
+    version: row.version,
+    cycleNumber: row.cycle_number,
+    effectiveAt: row.effective_at,
+    contentHash: row.content_hash,
+    groupName: terms.groupName,
+    contributionAmount: terms.contributionAmount ?? 0,
+    cadence: terms.cadence,
+    expectedPot: terms.expectedPot,
+    round1StartAt: terms.round1StartDate ?? "",
+    payoutOrder: terms.members,
+    simulationDisclaimer: terms.disclaimer,
+  };
+}
+
+/**
+ * Load the group's active/awaiting agreement as a snapshot for chat grounding
+ * (second-priority context tier), or null if the group has none yet
+ * (e.g. still in setup).
+ */
+export function loadActiveAgreement(groupId: number): AgreementSnapshot | null {
+  const row = getCurrentAgreement(groupId);
+  return row ? agreementSnapshotFromRow(row) : null;
 }

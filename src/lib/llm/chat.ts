@@ -1,14 +1,17 @@
 import { requireActiveMember } from "@/lib/db/groups";
 import { buildChatContext } from "./context";
 import { completeChat } from "./groq";
-import { loadLiveGroupStatus } from "./statusAdapter";
+import { loadActiveAgreement, loadLiveGroupStatus } from "./statusAdapter";
 import type { AgreementSnapshot, ChatContextSource } from "./types";
 
 export interface AskSusuInput {
   groupId: number;
   userId: number;
   message: string;
-  /** Optional until backend ships agreement tables. */
+  /**
+   * Overrides the group's active agreement (loaded from the DB by default).
+   * Mainly a test seam — production callers omit it.
+   */
   activeAgreement?: AgreementSnapshot | null;
 }
 
@@ -27,7 +30,8 @@ export async function askSusu(input: AskSusuInput): Promise<AskSusuResult> {
   requireActiveMember(input.groupId, input.userId);
 
   const status = loadLiveGroupStatus(input.groupId);
-  const activeAgreement = input.activeAgreement ?? null;
+  const activeAgreement =
+    input.activeAgreement ?? loadActiveAgreement(input.groupId);
 
   const ctx = buildChatContext({
     status,

@@ -164,22 +164,20 @@ export default function HomePage() {
           <p className="mt-2 text-sm text-[var(--muted)]">
             Built for a trusted circle. Not a bank.
           </p>
-        </div>
-        <ul className="mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto px-6 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {HOME_FEATURES.map((f) => (
-            <li
-              key={f.title}
-              className="w-[min(280px,78vw)] shrink-0 snap-start rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5"
-            >
-              <h3 className="font-semibold text-[var(--ink)]">{f.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-[var(--ink-soft)]">
-                {f.body}
-              </p>
-            </li>
-          ))}
-        </ul>
-        <div className="mx-auto mt-10 max-w-5xl px-6">
-          <p className="text-xs leading-relaxed text-[var(--muted)]">
+          <ul className="mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 pr-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {HOME_FEATURES.map((f) => (
+              <li
+                key={f.title}
+                className="w-[min(280px,78vw)] shrink-0 snap-start rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5"
+              >
+                <h3 className="font-semibold text-[var(--ink)]">{f.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--ink-soft)]">
+                  {f.body}
+                </p>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-10 text-xs leading-relaxed text-[var(--muted)]">
             This version is for practice and tracking. It does not hold,
             transfer, insure, or guarantee money.
           </p>

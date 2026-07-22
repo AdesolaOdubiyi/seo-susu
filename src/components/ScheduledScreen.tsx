@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { GroupStatus } from "@/lib/db/contributions";
 import { PhaseBadge } from "./PhaseBadge";
 
-/** scheduled: everyone signed; waiting for the agreed Round 1 date. */
+/** Waiting room after everyone signed, before Round 1. */
 export function ScheduledScreen({
   status,
   refresh,
@@ -45,7 +45,7 @@ export function ScheduledScreen({
       </header>
 
       <section className="rounded-2xl bg-neutral-900 p-6 text-center text-white">
-        <p className="text-sm text-neutral-400">Everyone signed 🎉</p>
+        <p className="text-sm text-neutral-400">Everyone signed</p>
         <p className="mt-2 text-lg">Round 1 starts on</p>
         <p className="mt-1 text-2xl font-bold">
           {group.round1StartAt
@@ -58,18 +58,20 @@ export function ScheduledScreen({
         </p>
       </section>
 
-      <div className="mt-6 rounded-2xl border border-dashed border-[var(--line)] p-3 text-center">
-        <p className="mb-2 text-xs font-medium text-[var(--muted)]">
-          For demos
-        </p>
-        <button
-          onClick={goLiveNow}
-          disabled={busy}
-          className="btn-press rounded-xl bg-[var(--surface-2)] px-4 py-2 text-sm font-medium text-[var(--ink)] disabled:opacity-50"
-        >
-          {busy ? "Starting…" : "Start Round 1 now"}
-        </button>
-      </div>
+      {process.env.NODE_ENV !== "production" && (
+        <div className="mt-6 rounded-2xl border border-dashed border-[var(--line)] p-3 text-center">
+          <p className="mb-2 text-xs font-medium text-[var(--muted)]">
+            For demos
+          </p>
+          <button
+            onClick={goLiveNow}
+            disabled={busy}
+            className="btn-press rounded-xl bg-[var(--surface-2)] px-4 py-2 text-sm font-medium text-[var(--ink)] disabled:opacity-50"
+          >
+            {busy ? "Starting…" : "Start Round 1 now"}
+          </button>
+        </div>
+      )}
     </>
   );
 }

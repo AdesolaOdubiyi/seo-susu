@@ -5,6 +5,7 @@ import { useState } from "react";
 import { BackLink } from "@/components/BackLink";
 import { createGroup } from "@/lib/api/client";
 import { saveMembership } from "@/lib/api/session";
+import { getErrorMessage } from "@/lib/ui/errors";
 
 export default function CreateGroupPage() {
   const router = useRouter();
@@ -28,11 +29,10 @@ export default function CreateGroupPage() {
         name: creator.name,
         groupName: group.name,
       });
-      // inviteCode is also shown on the setup screen; nothing else to do here.
       void inviteCode;
       router.push(`/group/${group.id}`);
     } catch (err) {
-      setError((err as Error).message);
+      setError(getErrorMessage(err));
       setBusy(false);
     }
   };
@@ -44,8 +44,8 @@ export default function CreateGroupPage() {
         Start a susu
       </h1>
       <p className="mt-2 text-sm text-[var(--ink-soft)]">
-        You&apos;ll get a code to invite others. Everyone agrees on the terms
-        together — no special admin powers.
+        You get a code to invite others. Everyone agrees on the terms together.
+        No one has special admin powers.
       </p>
 
       <form onSubmit={onSubmit} className="mt-6 space-y-4">

@@ -5,13 +5,14 @@ import type { GroupStatus } from "@/lib/db/contributions";
 import type { PollWithVotes } from "@/lib/db/polls";
 import type { ChangeType } from "@/lib/db/types";
 import { createPoll, votePoll } from "@/lib/api/client";
+import { getErrorMessage } from "@/lib/ui/errors";
 import {
   memberDisplayName,
   pollStatusLabel,
   pollTypeLabel,
 } from "@/lib/ui/labels";
 
-/** Live-phase polls: amount, schedule, add/remove member, start next cycle. */
+/** Live polls for amount, schedule, membership, and starting the next cycle. */
 export function LivePollsPanel({
   status,
   polls,
@@ -60,7 +61,7 @@ export function LivePollsPanel({
       setPanel(null);
       await refresh();
     } catch (e) {
-      setError((e as Error).message);
+      setError(getErrorMessage(e));
     } finally {
       setBusy(false);
     }

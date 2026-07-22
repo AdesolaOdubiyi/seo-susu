@@ -5,6 +5,7 @@ import { useState } from "react";
 import { BackLink } from "@/components/BackLink";
 import { joinGroup } from "@/lib/api/client";
 import { saveMembership } from "@/lib/api/session";
+import { getErrorMessage } from "@/lib/ui/errors";
 
 export default function JoinGroupPage() {
   const router = useRouter();
@@ -30,7 +31,7 @@ export default function JoinGroupPage() {
       });
       router.push(`/group/${group.id}`);
     } catch (err) {
-      setError((err as Error).message);
+      setError(getErrorMessage(err));
       setBusy(false);
     }
   };

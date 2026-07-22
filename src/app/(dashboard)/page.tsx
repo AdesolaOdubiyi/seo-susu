@@ -4,36 +4,65 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getMemberships, saveMembership, type Membership } from "@/lib/api/session";
+import { getErrorMessage } from "@/lib/ui/errors";
+
+type SeedMember = { userId: number; name: string };
+
+function isSeedMember(value: unknown): value is SeedMember {
+  if (typeof value !== "object" || value === null) return false;
+  const row = value as Record<string, unknown>;
+  return typeof row.userId === "number" && typeof row.name === "string";
+}
 
 export default function HomePage() {
   const router = useRouter();
   const [memberships, setMemberships] = useState<Membership[]>([]);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // localStorage is client-only, so we hydrate memberships after mount.
+    // localStorage is client-only; hydrate after mount.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMemberships(getMemberships());
   }, []);
 
   const loadDemo = async () => {
     setBusy(true);
+    setError(null);
     try {
       const res = await fetch("/api/dev/seed", { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) return;
-      const first = data.members?.[0] as
-        | { userId: number; name: string }
-        | undefined;
+      const data: unknown = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const message =
+          typeof data === "object" &&
+          data !== null &&
+          "error" in data &&
+          typeof (data as { error: unknown }).error === "string"
+            ? (data as { error: string }).error
+            : "Could not load the demo group.";
+        setError(getErrorMessage(message));
+        return;
+      }
+      if (
+        typeof data !== "object" ||
+        data === null ||
+        typeof (data as { groupId?: unknown }).groupId !== "number" ||
+        !Array.isArray((data as { members?: unknown }).members)
+      ) {
+        setError("Could not load the demo group.");
+        return;
+      }
+      const groupId = (data as { groupId: number }).groupId;
+      const first = (data as { members: unknown[] }).members.find(isSeedMember);
       if (first) {
         saveMembership({
-          groupId: data.groupId,
+          groupId,
           userId: first.userId,
           name: first.name,
           groupName: "Sunday Savers",
         });
       }
-      router.push(`/group/${data.groupId}`);
+      router.push(`/group/${groupId}`);
     } finally {
       setBusy(false);
     }
@@ -98,6 +127,9 @@ export default function HomePage() {
 
       {process.env.NODE_ENV !== "production" && (
         <div className="mt-10 border-t border-[var(--line)] pt-4 text-center">
+          {error && (
+            <p className="mb-2 text-xs text-[var(--warn)]">{error}</p>
+          )}
           <button
             onClick={loadDemo}
             disabled={busy}

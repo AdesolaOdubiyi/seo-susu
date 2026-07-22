@@ -5,6 +5,7 @@ import type { GroupStatus } from "@/lib/db/contributions";
 import type { PollWithVotes } from "@/lib/db/polls";
 import { getStatus, listPolls } from "@/lib/api/client";
 import { getMembership } from "@/lib/api/session";
+import { getErrorMessage } from "@/lib/ui/errors";
 import { BackLink } from "@/components/BackLink";
 import { ChatPanel } from "@/components/ChatPanel";
 import { LiveDashboard } from "@/components/LiveDashboard";
@@ -35,8 +36,6 @@ export default function GroupPage({
       setStatus(nextStatus);
       setPolls(pollsRes.polls);
       setError(null);
-      // Default to the identity saved for this group on this device, else the
-      // first member (handy for demoing every role from one screen).
       setActingUserId(
         (prev) =>
           prev ??
@@ -45,7 +44,7 @@ export default function GroupPage({
           null,
       );
     } catch (e) {
-      setError((e as Error).message);
+      setError(getErrorMessage(e));
     }
   }, [groupId]);
 
@@ -108,7 +107,7 @@ export default function GroupPage({
         />
       )}
 
-      {/* Rules + chat available in every phase so the assistant is never buried. */}
+      {/* Rules and chat on non-live phases; live dashboard embeds them. */}
       {status.group.phase !== "live" &&
         status.group.phase !== "cycle_complete" && (
           <>
@@ -117,7 +116,7 @@ export default function GroupPage({
           </>
         )}
 
-      {/* Demo helper: switch who you act as on this device. */}
+      {/* Switch the identity this device is using for this group. */}
       <div className="mt-6 rounded-2xl border border-dashed border-[var(--line)] bg-[var(--surface)] p-3">
         <p className="mb-2 text-xs font-medium text-[var(--muted)]">
           Viewing as

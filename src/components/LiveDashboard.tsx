@@ -4,13 +4,14 @@ import { useState } from "react";
 import type { GroupStatus } from "@/lib/db/contributions";
 import type { PollWithVotes } from "@/lib/db/polls";
 import { contribute, leaveGroup } from "@/lib/api/client";
+import { getErrorMessage } from "@/lib/ui/errors";
 import { payoutPausedMessage } from "@/lib/ui/labels";
 import { PhaseBadge } from "./PhaseBadge";
 import { LivePollsPanel } from "./LivePollsPanel";
 import { RulesPanel } from "./RulesPanel";
 import { ChatPanel } from "./ChatPanel";
 
-/** Live-round view: recipient, pot, rotation, contribute, polls, rules, chat. */
+/** Live round: recipient, pot, rotation, contribute, polls, rules, chat. */
 export function LiveDashboard({
   status,
   polls,
@@ -42,17 +43,17 @@ export function LiveDashboard({
         setFlash(
           `${result.payout.recipient.name} received $${result.payout.amount}` +
             (result.payout.cycleComplete
-              ? " — cycle complete!"
-              : " — next round!"),
+              ? ". Cycle complete."
+              : ". Next round starts."),
         );
       } else if (result.waitingOnPoll) {
         setFlash(
-          "Round is fully funded, but an open poll is pausing the payout.",
+          "Everyone has contributed. An open vote is holding the payout.",
         );
       }
       await refresh();
     } catch (e) {
-      setFlash((e as Error).message);
+      setFlash(getErrorMessage(e));
     } finally {
       setBusy(false);
       setTimeout(() => setFlash(null), 4000);
@@ -63,7 +64,7 @@ export function LiveDashboard({
     if (!actingUserId) return;
     if (
       !window.confirm(
-        "Leave this susu? You'll be skipped in the rotation and the pot will shrink.",
+        "Leave this susu? You will be skipped in the rotation and the pot will shrink.",
       )
     ) {
       return;
@@ -72,9 +73,9 @@ export function LiveDashboard({
     try {
       await leaveGroup(group.id, actingUserId);
       await refresh();
-      setFlash("You've left the group.");
+      setFlash("You left the group.");
     } catch (e) {
-      setFlash((e as Error).message);
+      setFlash(getErrorMessage(e));
     } finally {
       setLeaveBusy(false);
       setTimeout(() => setFlash(null), 4000);
@@ -93,7 +94,7 @@ export function LiveDashboard({
           <span className="tabular-nums">{group.contributionAmount}</span>/
           {group.schedule === "biweekly"
             ? "every 2 weeks"
-            : group.schedule || "—"}
+            : group.schedule || "schedule TBD"}
         </p>
         <p className="mt-1 text-xs text-[var(--muted)]">
           Invite code{" "}
@@ -127,7 +128,7 @@ export function LiveDashboard({
           </span>
           <span className={round.stalled ? "text-amber-300" : "text-white/70"}>
             {round.stalled
-              ? "Overdue — still waiting on contributions"
+              ? "Overdue. Still waiting on contributions."
               : `Due in ${round.daysUntilDeadline} day(s)`}
           </span>
         </div>
@@ -200,7 +201,7 @@ export function LiveDashboard({
           className="w-full rounded-xl bg-green-600 py-3.5 font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400"
         >
           {actingMember?.contributedThisRound
-            ? "You've contributed this round"
+            ? "You contributed this round"
             : busy
               ? "Sending…"
               : `Mark my $${group.contributionAmount} as sent`}
@@ -209,7 +210,7 @@ export function LiveDashboard({
 
       {group.cycleComplete && (
         <p className="mt-3 rounded-xl bg-green-50 p-3 text-center text-sm text-green-800">
-          Cycle complete. Propose the next cycle under Polls — everyone must
+          Cycle complete. Under Polls, propose the next cycle. Everyone must
           approve.
         </p>
       )}

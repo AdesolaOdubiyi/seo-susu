@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { sendChat } from "@/lib/api/client";
+import { getErrorMessage } from "@/lib/ui/errors";
 
 type Message = {
   role: "user" | "assistant";
@@ -9,7 +10,7 @@ type Message = {
   sources?: Array<{ kind: string; label: string }>;
 };
 
-/** Grounded group assistant — asks /api/chat with live status context. */
+/** Group assistant grounded in live status and the signed agreement. */
 export function ChatPanel({
   groupId,
   userId,
@@ -49,12 +50,12 @@ export function ChatPanel({
         },
       ]);
     } catch (err) {
-      setError((err as Error).message);
+      setError(getErrorMessage(err));
       setMessages((m) => [
         ...m,
         {
           role: "assistant",
-          text: "I couldn't answer that just now. Try again in a moment.",
+          text: "I could not answer that. Try again in a moment.",
         },
       ]);
     } finally {
@@ -110,7 +111,7 @@ export function ChatPanel({
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder={
-            userId ? "Ask about this susu…" : "Pick who you’re acting as"
+            userId ? "Ask about this susu…" : "Choose who you are viewing as"
           }
           disabled={!userId || busy}
           className="flex-1 rounded-xl border border-neutral-300 px-3 py-2 text-sm disabled:bg-neutral-50"

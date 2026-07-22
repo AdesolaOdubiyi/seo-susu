@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-/** Plain text back control — use on every non-home screen. */
+/** Text link for screens other than home. */
 export function BackLink({
   href = "/",
   label = "Back",

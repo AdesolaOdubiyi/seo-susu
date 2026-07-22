@@ -72,7 +72,7 @@ export function RulesPanel({ status }: { status: GroupStatus }) {
               <dd className="font-medium">
                 {group.schedule === "biweekly"
                   ? "Every 2 weeks"
-                  : group.schedule || "—"}
+                  : group.schedule || "Not set yet"}
               </dd>
             </div>
             <div>
@@ -92,7 +92,7 @@ export function RulesPanel({ status }: { status: GroupStatus }) {
               Payout order
             </p>
             <p className="mt-1 text-sm">
-              {order.map((m) => m.name).join(" → ") || "—"}
+              {order.map((m) => m.name).join(" → ") || "Not set yet"}
             </p>
           </div>
 

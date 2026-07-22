@@ -3,9 +3,10 @@
 import { useState } from "react";
 import type { GroupStatus } from "@/lib/db/contributions";
 import { signAgreement } from "@/lib/api/client";
+import { getErrorMessage } from "@/lib/ui/errors";
 import { PhaseBadge } from "./PhaseBadge";
 
-/** awaiting_signatures: show the generated agreement and collect signatures. */
+/** Collect signatures while the group waits on the agreement. */
 export function SignScreen({
   status,
   actingUserId,
@@ -30,7 +31,7 @@ export function SignScreen({
       await signAgreement(group.id, actingUserId);
       await refresh();
     } catch (e) {
-      setError((e as Error).message);
+      setError(getErrorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -97,14 +98,14 @@ export function SignScreen({
             className="w-full rounded-xl bg-neutral-900 py-3.5 font-semibold text-white transition disabled:bg-neutral-200 disabled:text-neutral-400"
           >
             {actingSigned
-              ? "You've signed"
+              ? "You signed"
               : busy
                 ? "Signing…"
-                : "I agree — sign"}
+                : "I agree. Sign"}
           </button>
         </>
       ) : (
-        <p className="text-neutral-500">Generating the agreement…</p>
+        <p className="text-neutral-500">Preparing the agreement…</p>
       )}
     </>
   );

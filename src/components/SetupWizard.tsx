@@ -5,6 +5,7 @@ import type { GroupStatus } from "@/lib/db/contributions";
 import type { PollWithVotes } from "@/lib/db/polls";
 import type { ChangeType } from "@/lib/db/types";
 import { createPoll, votePoll } from "@/lib/api/client";
+import { getErrorMessage } from "@/lib/ui/errors";
 import { PhaseBadge } from "./PhaseBadge";
 
 type TermKey =
@@ -71,7 +72,7 @@ export function SetupWizard({
       await fn();
       await refresh();
     } catch (e) {
-      setError((e as Error).message);
+      setError(getErrorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -140,7 +141,7 @@ export function SetupWizard({
       </section>
 
       <p className="mb-2 rounded-lg bg-neutral-50 p-3 text-xs text-neutral-500">
-        💡 Most groups decide these on WhatsApp first, then just confirm here.
+        Most groups settle these on WhatsApp first, then confirm them here.
       </p>
 
       {/* One block per term */}

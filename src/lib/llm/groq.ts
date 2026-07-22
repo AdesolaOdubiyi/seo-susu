@@ -3,6 +3,11 @@ import { ApiError } from "@/lib/db/types";
 
 const DEFAULT_MODEL = "llama-3.1-8b-instant";
 
+/** True when a Groq API key is available (lets callers pick a fallback). */
+export function isGroqConfigured(): boolean {
+  return Boolean(process.env.GROQ_API_KEY?.trim());
+}
+
 export function getGroqClient(): Groq {
   const apiKey = process.env.GROQ_API_KEY?.trim();
   if (!apiKey) {

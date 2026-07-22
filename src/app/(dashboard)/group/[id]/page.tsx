@@ -5,6 +5,7 @@ import type { GroupStatus } from "@/lib/db/contributions";
 import type { PollWithVotes } from "@/lib/db/polls";
 import { getStatus, listPolls } from "@/lib/api/client";
 import { getMembership } from "@/lib/api/session";
+import { BackLink } from "@/components/BackLink";
 import { LiveDashboard } from "@/components/LiveDashboard";
 import { SetupWizard } from "@/components/SetupWizard";
 import { SignScreen } from "@/components/SignScreen";
@@ -62,20 +63,25 @@ export default function GroupPage({
   if (error) {
     return (
       <main className="mx-auto max-w-md p-6">
-        <p className="rounded-lg bg-red-50 p-4 text-red-700">{error}</p>
+        <BackLink href="/" label="All groups" />
+        <p className="mt-4 rounded-lg bg-red-50 p-4 text-red-700">{error}</p>
       </main>
     );
   }
   if (!status) {
     return (
-      <main className="mx-auto max-w-md p-6 text-center text-neutral-500">
-        Loading…
+      <main className="mx-auto max-w-md p-6">
+        <BackLink href="/" label="All groups" />
+        <p className="mt-8 text-center text-neutral-500">Loading…</p>
       </main>
     );
   }
 
   return (
     <main className="mx-auto max-w-md p-4 pb-24">
+      <div className="mb-3">
+        <BackLink href="/" label="All groups" />
+      </div>
       {status.group.phase === "setup" && (
         <SetupWizard
           status={status}

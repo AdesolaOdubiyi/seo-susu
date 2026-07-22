@@ -30,7 +30,10 @@ export default function HomePage() {
   return (
     <main className="mx-auto max-w-md p-6">
       <header className="mt-6">
-        <h1 className="text-3xl font-bold">Susu</h1>
+        <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
+          Home
+        </p>
+        <h1 className="mt-1 text-3xl font-bold">Susu</h1>
         <p className="mt-1 text-neutral-500">
           Save together. Take turns getting the pot.
         </p>

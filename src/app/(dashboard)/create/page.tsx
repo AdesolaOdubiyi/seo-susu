@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { BackLink } from "@/components/BackLink";
 import { createGroup } from "@/lib/api/client";
 import { saveMembership } from "@/lib/api/session";
 
@@ -38,7 +39,8 @@ export default function CreateGroupPage() {
 
   return (
     <main className="mx-auto max-w-md p-6">
-      <h1 className="text-2xl font-bold">Start a susu</h1>
+      <BackLink href="/" label="Home" />
+      <h1 className="mt-4 text-2xl font-bold">Start a susu</h1>
       <p className="mt-1 text-sm text-neutral-500">
         You&apos;ll get a code to invite others. Everyone agrees on the terms
         together — no admin.

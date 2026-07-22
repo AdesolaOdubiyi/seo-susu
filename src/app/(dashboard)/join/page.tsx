@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { BackLink } from "@/components/BackLink";
 import { joinGroup } from "@/lib/api/client";
 import { saveMembership } from "@/lib/api/session";
 
@@ -36,7 +37,8 @@ export default function JoinGroupPage() {
 
   return (
     <main className="mx-auto max-w-md p-6">
-      <h1 className="text-2xl font-bold">Join a susu</h1>
+      <BackLink href="/" label="Home" />
+      <h1 className="mt-4 text-2xl font-bold">Join a susu</h1>
       <p className="mt-1 text-sm text-neutral-500">
         Enter the code a group member shared with you.
       </p>

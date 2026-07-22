@@ -5,31 +5,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getMemberships, saveMembership, type Membership } from "@/lib/api/session";
 import { getErrorMessage } from "@/lib/ui/errors";
+import { HOME_FEATURES } from "@/lib/prototypes/homeFeatures";
 
 type SeedMember = { userId: number; name: string };
-
-const FEATURES = [
-  {
-    title: "Same amount, same order, every round",
-    body: "Everyone puts in on the same schedule. Each round the pot goes to the next person in line.",
-  },
-  {
-    title: "Nothing changes without everyone agreeing",
-    body: "Amount, schedule, who's in. Anyone can propose a change. It only sticks if every active member says yes.",
-  },
-  {
-    title: "Mark it sent, see who's caught up",
-    body: "Contribute with a tap. See who's paid and who's still owed before the payout goes out.",
-  },
-  {
-    title: "A rules doc everyone signed",
-    body: "Terms get written down once the group agrees, so there's a clear record to point to later.",
-  },
-  {
-    title: "Ask instead of digging",
-    body: "Questions like who's next or why a payout is paused use your group's real status and rules.",
-  },
-] as const;
 
 function isSeedMember(value: unknown): value is SeedMember {
   if (typeof value !== "object" || value === null) return false;
@@ -93,7 +71,6 @@ export default function HomePage() {
 
   return (
     <main>
-      {/* Hero: one composition — brand first, then meaning, then CTAs */}
       <section className="mx-auto flex min-h-[min(100vh,640px)] max-w-2xl flex-col justify-center px-6 py-14">
         <h1 className="font-[family-name:var(--font-display)] text-5xl font-semibold tracking-tight text-[var(--ink)] sm:text-6xl">
           Susu
@@ -106,7 +83,6 @@ export default function HomePage() {
           the full pot once, in turn.
         </p>
 
-        {/* Single atmosphere cue: ink payout silhouette */}
         <div
           className="mt-8 max-w-sm rounded-2xl bg-[var(--ink)] p-5 text-[var(--paper)]"
           aria-hidden="true"
@@ -134,6 +110,22 @@ export default function HomePage() {
             Join with a code
           </Link>
         </div>
+
+        {process.env.NODE_ENV !== "production" && (
+          <div className="mt-4 max-w-sm">
+            {error && (
+              <p className="mb-2 text-xs text-[var(--warn)]">{error}</p>
+            )}
+            <button
+              type="button"
+              onClick={loadDemo}
+              disabled={busy}
+              className="text-xs font-medium text-[var(--muted)] underline disabled:opacity-50"
+            >
+              {busy ? "Setting up…" : "Load a live demo group"}
+            </button>
+          </div>
+        )}
       </section>
 
       {memberships.length > 0 && (
@@ -164,53 +156,45 @@ export default function HomePage() {
         </section>
       )}
 
-      <section className="border-t border-[var(--line)] bg-[var(--surface)]/60">
-        <div className="mx-auto max-w-2xl px-6 py-14">
+      <section className="border-t border-[var(--line)] bg-[var(--surface)]/60 py-14">
+        <div className="mx-auto max-w-5xl px-6">
           <h2 className="font-[family-name:var(--font-display)] text-2xl font-semibold tracking-tight">
             What you can do
           </h2>
           <p className="mt-2 text-sm text-[var(--muted)]">
             Built for a trusted circle. Not a bank.
           </p>
-          <ul className="mt-8 space-y-6">
-            {FEATURES.map((f) => (
-              <li key={f.title}>
-                <h3 className="font-semibold text-[var(--ink)]">{f.title}</h3>
-                <p className="mt-1 text-sm leading-relaxed text-[var(--ink-soft)]">
-                  {f.body}
-                </p>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-10 text-xs leading-relaxed text-[var(--muted)]">
+        </div>
+        <ul className="mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto px-6 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {HOME_FEATURES.map((f) => (
+            <li
+              key={f.title}
+              className="w-[min(280px,78vw)] shrink-0 snap-start rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5"
+            >
+              <h3 className="font-semibold text-[var(--ink)]">{f.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-[var(--ink-soft)]">
+                {f.body}
+              </p>
+            </li>
+          ))}
+        </ul>
+        <div className="mx-auto mt-10 max-w-5xl px-6">
+          <p className="text-xs leading-relaxed text-[var(--muted)]">
             This version is for practice and tracking. It does not hold,
             transfer, insure, or guarantee money.
           </p>
+          {process.env.NODE_ENV !== "production" && (
+            <p className="mt-6">
+              <Link
+                href="/prototypes"
+                className="text-xs font-medium text-[var(--accent)] underline"
+              >
+                Layout prototypes
+              </Link>
+            </p>
+          )}
         </div>
       </section>
-
-      {process.env.NODE_ENV !== "production" && (
-        <div className="mx-auto max-w-2xl px-6 py-8 text-center">
-          {error && (
-            <p className="mb-2 text-xs text-[var(--warn)]">{error}</p>
-          )}
-          <button
-            onClick={loadDemo}
-            disabled={busy}
-            className="text-xs font-medium text-[var(--muted)] underline disabled:opacity-50"
-          >
-            {busy ? "Setting up…" : "Load a live demo group"}
-          </button>
-          <p className="mt-3">
-            <Link
-              href="/prototypes"
-              className="text-xs font-medium text-[var(--accent)] underline"
-            >
-              Dashboard layout prototypes
-            </Link>
-          </p>
-        </div>
-      )}
     </main>
   );
 }

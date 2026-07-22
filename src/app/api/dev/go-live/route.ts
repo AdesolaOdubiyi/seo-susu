@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 /**
  * POST /api/dev/go-live  (dev only)
  * Backdate a scheduled group's Round 1 start to just now so the lazy phase
- * sync flips it to 'live' immediately — lets a real setup walkthrough reach
+ * sync flips it to 'live' immediately - lets a real setup walkthrough reach
  * the live dashboard in a demo without waiting for the agreed date.
  * Body: { groupId }
  */

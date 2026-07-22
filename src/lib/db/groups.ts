@@ -3,9 +3,9 @@ import { getDb } from "./index";
 import { nextRecipient, type PolicyMember } from "@/lib/rules";
 import {
   ApiError,
-  GroupRow,
-  MemberWithUser,
-  UserRow,
+  type GroupRow,
+  type MemberWithUser,
+  type UserRow,
 } from "./types";
 
 // No 0/O/1/I to keep codes easy to share verbally.
@@ -22,7 +22,7 @@ function generateInviteCode(): string {
 /**
  * Organizer creates an empty group in the 'setup' phase and shares the
  * invite code. Terms (amount, cadence, rotation order, Round 1 date) are
- * decided later by unanimous setup proposals — the organizer has no special
+ * decided later by unanimous setup proposals - the organizer has no special
  * powers beyond opening setup.
  */
 export function createGroup(input: {
@@ -77,7 +77,7 @@ export function addMember(
 
 /**
  * Name + invite code is the MVP auth. A matching member name logs in;
- * otherwise the user joins at the end of the provisional rotation — only
+ * otherwise the user joins at the end of the provisional rotation - only
  * while the group is still in setup. Once past setup, joining requires an
  * approved 'add_member' poll.
  */

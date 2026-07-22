@@ -9,7 +9,7 @@ import {
   advanceRoundIfComplete,
   beginNextCycle,
   expireOverduePolls,
-  PayoutResult,
+  type PayoutResult,
 } from "./rotation";
 import {
   generateAgreement,
@@ -33,13 +33,13 @@ import {
 } from "@/lib/rules";
 import {
   ApiError,
-  ChangeType,
-  GroupRow,
+  type ChangeType,
+  type GroupRow,
   LIVE_POLL_TYPES,
-  PollRow,
-  PollVoteRow,
+  type PollRow,
+  type PollVoteRow,
   SCHEDULES,
-  Schedule,
+  type Schedule,
   SETUP_POLL_TYPES,
 } from "./types";
 
@@ -91,7 +91,7 @@ export function createPoll(input: {
 }
 
 function pollDeadline(group: GroupRow, changeType: ChangeType): Date {
-  // Live polls: the UTC calendar day before the round due date — unless
+  // Live polls: the UTC calendar day before the round due date - unless
   // that is already past (stalled round), where a born-expired poll would
   // make the deadlock unfixable; fall back to the 7-day proposal window.
   if (group.phase === "live" && group.round_due_at && changeType !== "start_cycle") {
@@ -113,7 +113,7 @@ function normalizeDetails(
   if (group.phase === "setup") {
     if (!(SETUP_POLL_TYPES as readonly string[]).includes(changeType)) {
       throw new ApiError(
-        `During setup, changeType must be one of: ${SETUP_POLL_TYPES.join(", ")}`,
+        "During setup you can only propose contribution amount, schedule, payout order, or Round 1 start date.",
       );
     }
     switch (changeType) {
@@ -125,7 +125,7 @@ function normalizeDetails(
         const ids = obj.orderedUserIds;
         if (!Array.isArray(ids) || ids.some((n) => typeof n !== "number")) {
           throw new ApiError(
-            'changeDetails must include "orderedUserIds", the full payout order as an array of member userIds',
+            "Payout order must list every active member exactly once.",
           );
         }
         const valid = validateRotationOrder(
@@ -133,7 +133,7 @@ function normalizeDetails(
           getActiveMembers(group.id).map((m) => m.user_id),
         );
         if (!valid.ok) {
-          throw new ApiError(`Invalid rotation order: ${valid.reason}`);
+          throw new ApiError(`Invalid payout order: ${valid.reason}`);
         }
         return { orderedUserIds: ids };
       }
@@ -143,28 +143,30 @@ function normalizeDetails(
             ? new Date(obj.startDate)
             : defaultRound1StartDate();
         if (Number.isNaN(startDate.getTime())) {
-          throw new ApiError('"startDate" must be an ISO date string');
+          throw new ApiError("Round 1 start date must be a valid date.");
         }
         if (startDate.getTime() <= Date.now()) {
-          throw new ApiError('"startDate" must be in the future');
+          throw new ApiError("Round 1 start date must be in the future.");
         }
         return { startDate: startDate.toISOString() };
       }
       default:
-        throw new ApiError(`Unsupported setup proposal: ${changeType}`);
+        throw new ApiError("That setup proposal is not supported.");
     }
   }
 
   if (group.phase === "awaiting_signatures" || group.phase === "scheduled") {
     throw new ApiError(
-      `No polls while the agreement is being ${group.phase === "scheduled" ? "scheduled" : "signed"} — it expires back to setup after 7 days if signatures stall`,
+      group.phase === "scheduled"
+        ? "Votes are paused while Round 1 is scheduled. If signatures stall, the group returns to setup after 7 days."
+        : "Votes are paused while the agreement is being signed. If signatures stall, the group returns to setup after 7 days.",
       409,
     );
   }
 
   if (!(LIVE_POLL_TYPES as readonly string[]).includes(changeType)) {
     throw new ApiError(
-      `changeType must be one of: ${LIVE_POLL_TYPES.join(", ")}`,
+      "That proposal type is not available while the group is live.",
     );
   }
   switch (changeType) {
@@ -174,7 +176,7 @@ function normalizeDetails(
       return { schedule: requireSchedule(obj) };
     case "add_member": {
       if (typeof obj.userName !== "string" || obj.userName.trim() === "") {
-        throw new ApiError('changeDetails must include a non-empty "userName"');
+        throw new ApiError("Enter a name for the new member.");
       }
       const taken = getMembers(group.id).some(
         (m) =>
@@ -194,7 +196,7 @@ function normalizeDetails(
       const valid = validateRemoveMemberDetails(details);
       if (!valid.ok) {
         throw new ApiError(
-          `Removing a member needs "targetUserId", the new payment "newAmount", and the new "newPayoutDate" (${valid.reason})`,
+          `Removing a member needs who to remove, the new contribution amount, and the new payout date (${valid.reason}).`,
         );
       }
       if (
@@ -211,20 +213,20 @@ function normalizeDetails(
       });
       if (!can.ok) {
         throw new ApiError(
-          "start_cycle can only be proposed once the current cycle is complete",
+          "You can propose the next cycle only after this one is finished.",
           409,
         );
       }
       return {};
     }
     default:
-      throw new ApiError(`Unsupported changeType: ${changeType}`);
+      throw new ApiError("That proposal type is not supported.");
   }
 }
 
 function requireAmount(obj: Record<string, unknown>): number {
   if (typeof obj.amount !== "number" || obj.amount <= 0) {
-    throw new ApiError('changeDetails must include a positive "amount" number');
+    throw new ApiError("Enter a contribution amount greater than zero.");
   }
   return obj.amount;
 }
@@ -232,7 +234,7 @@ function requireAmount(obj: Record<string, unknown>): number {
 function requireSchedule(obj: Record<string, unknown>): Schedule {
   if (!SCHEDULES.includes(obj.schedule as Schedule)) {
     throw new ApiError(
-      `changeDetails.schedule must be one of: ${SCHEDULES.join(", ")}`,
+      `Schedule must be one of: ${SCHEDULES.join(", ")}.`,
     );
   }
   return obj.schedule as Schedule;
@@ -292,7 +294,7 @@ function eligibleVoterIds(poll: PollRow): number[] {
 /**
  * Record a vote. Any rejection settles the poll as rejected; unanimous
  * approval applies the change. A yes on start_cycle also records acceptance
- * of the current agreement version — the next cycle begins only when every
+ * of the current agreement version - the next cycle begins only when every
  * active member has both approved and accepted. Settling a poll can unblock
  * a waiting payout, which is returned when triggered.
  */

@@ -32,7 +32,7 @@ export function getDb(): Database.Database {
 /**
  * CREATE TABLE IF NOT EXISTS never alters an existing table. Older local DBs
  * still require contribution_amount/schedule/round_due_at NOT NULL and lack
- * phase / round1_start_at — which breaks setup-first group creation.
+ * phase / round1_start_at - which breaks setup-first group creation.
  */
 function migrateGroupsIfStale(db: Database.Database): void {
   const cols = db.prepare("PRAGMA table_info(groups)").all() as ColumnInfo[];

@@ -10,11 +10,11 @@ import {
   canSettlePayout,
   type OpenPollSummary,
 } from "@/lib/rules";
-import { ApiError, GroupRow } from "./types";
+import { ApiError, type GroupRow } from "./types";
 
 /**
  * Auto-reject open polls that are past their deadline (contract: on expiry,
- * old terms stay and payout unblocks). Lazy — run before any decision that
+ * old terms stay and payout unblocks). Lazy - run before any decision that
  * depends on open polls.
  */
 export function expireOverduePolls(groupId: number): void {
@@ -86,7 +86,7 @@ export function advanceRoundIfComplete(groupId: number): PayoutResult | null {
     const recipient = getCurrentRecipient(group);
     if (!recipient) {
       // No unpaid active member left (e.g. the last unpaid member was
-      // removed) — the cycle is complete.
+      // removed) - the cycle is complete.
       db.prepare("UPDATE groups SET phase = 'cycle_complete' WHERE id = ?").run(
         groupId,
       );

@@ -9,7 +9,7 @@ import {
   advanceRoundIfComplete,
   expireOverduePolls,
   listOpenPolls,
-  PayoutResult,
+  type PayoutResult,
 } from "./rotation";
 import {
   getAcceptances,
@@ -22,7 +22,7 @@ import {
   canSettlePayout,
   isStalled,
 } from "@/lib/rules";
-import { ApiError, ContributionRow } from "./types";
+import { ApiError, type ContributionRow } from "./types";
 
 export interface ContributionResult {
   contribution: ContributionRow;
@@ -35,21 +35,21 @@ export interface ContributionResult {
 }
 
 const CONTRIBUTION_BLOCKED: Record<string, string> = {
-  phase_setup: "The group is still in setup — terms must be agreed first",
+  phase_setup: "The group is still setting terms. Agree on those first.",
   phase_awaiting_signatures:
-    "The agreement is out for signatures — contributions start once everyone signs and Round 1 begins",
-  phase_scheduled: "Round 1 hasn't started yet",
+    "The agreement is waiting for signatures. Contributions start after everyone signs and Round 1 begins.",
+  phase_scheduled: "Round 1 has not started yet.",
   phase_cycle_complete:
-    "This cycle is complete — the next cycle needs an approved start_cycle poll",
+    "This cycle is finished. Start the next cycle with a group vote.",
   need_two_active_members:
-    "The rotation needs at least 2 active members before contributions can start",
-  already_contributed: "Already contributed for this round",
+    "You need at least two active members before contributions can start.",
+  already_contributed: "You already contributed for this round.",
 };
 
 /**
- * Mark a simulated contribution as sent for the group's current round, then
- * advance the rotation if that settled the round. Contributions are allowed
- * while polls are open and after the due date — only the payout waits.
+ * Record a simulated contribution for the current round, then advance the
+ * rotation if the round is settled. Contributions stay open while votes are
+ * open and after the due date. Only the payout waits.
  */
 export function recordContribution(
   groupId: number,

@@ -10,10 +10,10 @@ import {
   type SetupApprovals,
 } from "@/lib/rules";
 import {
-  AcceptanceRow,
-  AgreementRow,
+  type AcceptanceRow,
+  type AgreementRow,
   ApiError,
-  GroupRow,
+  type GroupRow,
 } from "./types";
 
 /**
@@ -182,7 +182,7 @@ function renderAgreementText(terms: {
     .map((m, i) => `${i + 1}. ${m.name}`)
     .join("\n");
   return [
-    `${terms.groupName} — Group Agreement (cycle ${terms.cycleNumber}, version ${terms.version})`,
+    `${terms.groupName} - Group Agreement (cycle ${terms.cycleNumber}, version ${terms.version})`,
     ``,
     `Members and payout order:`,
     order,
@@ -266,7 +266,7 @@ export function signAgreement(
 
     if (group.phase !== "awaiting_signatures") {
       throw new ApiError(
-        `Nothing to sign — the group is in the '${group.phase}' phase`,
+        `Nothing to sign. The group is in the '${group.phase}' phase`,
         409,
       );
     }

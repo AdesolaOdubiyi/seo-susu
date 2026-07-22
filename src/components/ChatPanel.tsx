@@ -63,17 +63,17 @@ export function ChatPanel({
   };
 
   return (
-    <section className="mt-6 rounded-2xl border border-neutral-200">
-      <header className="border-b border-neutral-200 px-4 py-3">
-        <h2 className="font-semibold">Ask Susu</h2>
-        <p className="text-xs text-neutral-500">
+    <section className="mt-6 rounded-2xl border border-[var(--line)] bg-[var(--surface)]">
+      <header className="border-b border-[var(--line)] px-4 py-3">
+        <h2 className="font-semibold text-[var(--ink)]">Ask Susu</h2>
+        <p className="text-xs text-[var(--muted)]">
           Questions about this group&apos;s status and rules
         </p>
       </header>
 
       <div className="max-h-72 space-y-3 overflow-y-auto p-4">
         {messages.length === 0 && (
-          <p className="text-sm text-neutral-400">
+          <p className="text-sm text-[var(--muted)]">
             Try: &quot;Who gets paid next?&quot; or &quot;Who hasn&apos;t
             contributed?&quot;
           </p>
@@ -81,16 +81,16 @@ export function ChatPanel({
         {messages.map((m, i) => (
           <div
             key={`${m.role}-${i}`}
-            className={`rounded-xl px-3 py-2 text-sm ${
+            className={`rounded-2xl px-3 py-2 text-sm ${
               m.role === "user"
-                ? "ml-8 bg-neutral-900 text-white"
-                : "mr-8 bg-neutral-100 text-neutral-800"
+                ? "ml-8 bg-[var(--ink)] text-[var(--paper)]"
+                : "mr-8 bg-[var(--surface-2)] text-[var(--ink-soft)]"
             }`}
           >
-            <p className="whitespace-pre-wrap">{m.text}</p>
+            <p className="whitespace-pre-wrap leading-relaxed">{m.text}</p>
             {m.sources && m.sources.length > 0 && (
               <p className="mt-1 text-[10px] opacity-60">
-                {m.sources.map((s) => s.label).join(" · ")}
+                Based on {m.sources.map((s) => s.label).join(" · ")}
               </p>
             )}
           </div>

@@ -18,15 +18,15 @@ describe("buildChatContext", () => {
       "group_agreement",
       "general_rules",
     ]);
-    expect(ctx.systemPrompt.indexOf("Live group status")).toBeLessThan(
-      ctx.systemPrompt.indexOf("group's agreement"),
+    expect(ctx.systemPrompt.indexOf("Latest group details (use these first)")).toBeLessThan(
+      ctx.systemPrompt.indexOf("This group's signed agreement"),
     );
-    expect(ctx.systemPrompt.indexOf("group's agreement")).toBeLessThan(
-      ctx.systemPrompt.indexOf("General Susu rules"),
+    expect(ctx.systemPrompt.indexOf("This group's signed agreement")).toBeLessThan(
+      ctx.systemPrompt.indexOf("General susu notes (use last)"),
     );
   });
 
-  it("flags stale agreement when live amount/pot/stalled disagree", () => {
+  it("flags stale agreement when live amount/pot/overdue disagree", () => {
     const ctx = buildChatContext({
       status: fixtureStalledLiveStatus,
       activeAgreement: fixtureStaleAgreement,
@@ -35,13 +35,15 @@ describe("buildChatContext", () => {
     expect(ctx.staleNotes.some((n) => n.includes("contribution amount"))).toBe(
       true,
     );
-    expect(ctx.staleNotes.some((n) => n.includes("stalled"))).toBe(true);
-    expect(ctx.staleNotes.some((n) => n.includes("payout is blocked"))).toBe(
+    expect(ctx.staleNotes.some((n) => n.includes("overdue"))).toBe(true);
+    expect(
+      ctx.staleNotes.some((n) => n.includes("group decision is still open")),
+    ).toBe(true);
+    expect(ctx.systemPrompt).toContain("prefer latest group details");
+    expect(ctx.activeAgreementVersion).toBe(1);
+    expect(ctx.sources.some((s) => s.label === "Latest group details")).toBe(
       true,
     );
-    expect(ctx.systemPrompt).toContain("Stale / conflict notes");
-    expect(ctx.systemPrompt).toContain("live wins");
-    expect(ctx.activeAgreementVersion).toBe(1);
   });
 
   it("prefers live facts in the live section even when agreement differs", () => {
@@ -50,11 +52,13 @@ describe("buildChatContext", () => {
       activeAgreement: fixtureStaleAgreement,
     });
     const live = ctx.sections.find((s) => s.id === "live_status");
-    expect(live?.body).toContain("Contribution amount: 40");
-    expect(live?.body).toContain("Stalled: yes");
+    expect(live?.body).toContain("Contribution amount: $40");
+    expect(live?.body).toContain("Overdue: yes");
     expect(live?.body).toContain("Mike");
+    expect(live?.body).not.toContain("user ");
     const agreement = ctx.sections.find((s) => s.id === "group_agreement");
-    expect(agreement?.body).toContain("Contribution amount: 50");
+    expect(agreement?.body).toContain("Contribution amount: $50");
+    expect(agreement?.body).not.toContain("Content hash");
   });
 
   it("works with null agreement", () => {
@@ -64,7 +68,7 @@ describe("buildChatContext", () => {
     });
     expect(ctx.agreementMayBeStale).toBe(false);
     expect(ctx.activeAgreementVersion).toBeNull();
-    expect(ctx.sections[1]?.body).toContain("No active agreement");
+    expect(ctx.sections[1]?.body).toContain("No signed agreement");
   });
 
   it("works with null status", () => {
@@ -72,7 +76,7 @@ describe("buildChatContext", () => {
       status: null,
       activeAgreement: fixtureStaleAgreement,
     });
-    expect(ctx.sections[0]?.body).toContain("No live group status");
+    expect(ctx.sections[0]?.body).toContain("No live group details");
     expect(ctx.sources.some((s) => s.kind === "general_rules")).toBe(true);
   });
 
@@ -82,6 +86,6 @@ describe("buildChatContext", () => {
       activeAgreement: null,
     });
     expect(ctx.systemPrompt).toContain("What is a susu?");
-    expect(generalRulesExcerpt()).toContain("simulation only");
+    expect(generalRulesExcerpt()).toContain("practice");
   });
 });

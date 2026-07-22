@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { leaveGroup } from "@/lib/db/groups";
 import { advanceRoundIfComplete } from "@/lib/db/rotation";
 import { errorResponse, parseId, parseJsonBody, requireNumber } from "@/lib/http";

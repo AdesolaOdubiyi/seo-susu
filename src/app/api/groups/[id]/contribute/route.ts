@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { recordContribution } from "@/lib/db/contributions";
 import { errorResponse, parseId, parseJsonBody, requireNumber } from "@/lib/http";
 

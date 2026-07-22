@@ -9,16 +9,14 @@ import type { ChangeType } from "@/lib/db/types";
 export const runtime = "nodejs";
 
 /**
- * POST /api/dev/seed  (dev only)
+ * POST /api/dev/seed (dev only)
  *
- * Drives a brand-new group through the *real* lifecycle to a live, mid-round
- * state so the dashboard has something to show without hand-walking setup:
- *   create → 3 members join → unanimous setup polls (amount, cadence,
- *   rotation, Round 1 date) → all sign → backdate Round 1 → live → two of
- *   four members have contributed.
+ * Runs the real setup path into a live mid-round group:
+ * create, join, unanimous setup votes, signatures, backdated Round 1,
+ * then two of four contributions.
  *
- * Returns the group id and members (with userIds) so the UI can act as any
- * of them. Each call creates a fresh group.
+ * Response includes groupId and members so the UI can switch identities.
+ * Each call creates a new group.
  */
 export async function POST() {
   if (process.env.NODE_ENV === "production") {
@@ -26,12 +24,12 @@ export async function POST() {
   }
 
   const db = getDb();
-  const memberNames = ["Ama", "Kofi", "Zainab", "Malik"];
+  const memberNames = ["Ama", "Kofi", "Zainab", "Malik"] as const;
+  const organizerName = memberNames[0];
 
-  // 1. Organizer creates the group; everyone else joins by invite code.
   const { group, creator } = createGroup({
     name: "Sunday Savers",
-    creatorName: memberNames[0],
+    creatorName: organizerName,
   });
   for (const name of memberNames.slice(1)) {
     joinGroup({ inviteCode: group.invite_code, userName: name });
@@ -40,9 +38,15 @@ export async function POST() {
   const members = getActiveMembers(group.id);
   const orderedUserIds = members.map((m) => m.user_id);
   const proposer = creator.id;
+  const contributorA = orderedUserIds[1];
+  const contributorB = orderedUserIds[2];
+  if (contributorA === undefined || contributorB === undefined) {
+    return NextResponse.json(
+      { error: "Seed expected at least three members" },
+      { status: 500 },
+    );
+  }
 
-  // 2. Unanimously approve the four setup terms. Each poll is created by the
-  //    organizer and approved by every active member.
   const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
   const setupPolls: Array<{ changeType: ChangeType; changeDetails: unknown }> = [
     { changeType: "contribution_amount", changeDetails: { amount: 50 } },
@@ -57,12 +61,10 @@ export async function POST() {
     }
   }
 
-  // 3. Everyone signs the generated agreement -> phase becomes 'scheduled'.
   for (const uid of orderedUserIds) {
     signAgreement(group.id, uid);
   }
 
-  // 4. Backdate Round 1 to yesterday so the lazy phase sync flips us to live.
   const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   db.prepare("UPDATE groups SET round1_start_at = ? WHERE id = ?").run(
     yesterday,
@@ -70,9 +72,8 @@ export async function POST() {
   );
   syncGroupPhase(group.id);
 
-  // 5. Two of four contribute so the dashboard opens mid-round.
-  recordContribution(group.id, orderedUserIds[1]); // Kofi
-  recordContribution(group.id, orderedUserIds[2]); // Zainab
+  recordContribution(group.id, contributorA);
+  recordContribution(group.id, contributorB);
 
   const status = getGroupStatus(group.id);
 

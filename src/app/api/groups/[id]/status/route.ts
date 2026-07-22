@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getGroupStatus } from "@/lib/db/contributions";
 import { errorResponse, parseId } from "@/lib/http";
 

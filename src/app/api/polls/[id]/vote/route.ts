@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { votePoll } from "@/lib/db/polls";
 import { ApiError } from "@/lib/db/types";
 import { errorResponse, parseId, parseJsonBody, requireNumber } from "@/lib/http";

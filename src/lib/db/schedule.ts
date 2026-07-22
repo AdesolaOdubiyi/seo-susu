@@ -1,4 +1,4 @@
-import { Schedule } from "./types";
+import { type Schedule } from "./types";
 
 const SCHEDULE_DAYS: Record<Exclude<Schedule, "monthly">, number> = {
   weekly: 7,

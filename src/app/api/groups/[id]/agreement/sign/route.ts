@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { signAgreement } from "@/lib/db/agreements";
 import { errorResponse, parseId, parseJsonBody, requireNumber } from "@/lib/http";
 

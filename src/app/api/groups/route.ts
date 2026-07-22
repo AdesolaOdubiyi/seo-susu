@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { createGroup, getGroup, getMembers, listGroups } from "@/lib/db/groups";
 import {
   errorResponse,
@@ -11,7 +11,7 @@ import {
  * POST /api/groups
  * Organizer creates an empty group in the 'setup' phase and shares the
  * invite code. Terms (amount, cadence, rotation order, Round 1 date) are
- * agreed later via unanimous setup proposals on /api/polls — the organizer
+ * agreed later via unanimous setup proposals on /api/polls - the organizer
  * has no special powers beyond opening setup.
  * Body: { name, creatorName }
  */

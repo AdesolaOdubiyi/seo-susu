@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { createPoll, listPolls } from "@/lib/db/polls";
-import { ChangeType } from "@/lib/db/types";
+import { type ChangeType } from "@/lib/db/types";
 import {
   errorResponse,
   parseId,

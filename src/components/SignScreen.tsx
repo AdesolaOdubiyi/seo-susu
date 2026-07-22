@@ -46,6 +46,12 @@ export function SignScreen({
         <p className="mt-1 text-sm text-neutral-500">
           Everyone signs the agreement to lock in the terms.
         </p>
+        <p className="mt-1 text-xs text-neutral-400">
+          Invite code{" "}
+          <span className="font-mono tracking-wider text-neutral-600">
+            {group.inviteCode}
+          </span>
+        </p>
       </header>
 
       {activeAgreement ? (

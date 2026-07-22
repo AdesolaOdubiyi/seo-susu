@@ -6,7 +6,9 @@ import type { PollWithVotes } from "@/lib/db/polls";
 import { getStatus, listPolls } from "@/lib/api/client";
 import { getMembership } from "@/lib/api/session";
 import { BackLink } from "@/components/BackLink";
+import { ChatPanel } from "@/components/ChatPanel";
 import { LiveDashboard } from "@/components/LiveDashboard";
+import { RulesPanel } from "@/components/RulesPanel";
 import { SetupWizard } from "@/components/SetupWizard";
 import { SignScreen } from "@/components/SignScreen";
 import { ScheduledScreen } from "@/components/ScheduledScreen";
@@ -100,10 +102,20 @@ export default function GroupPage({
         status.group.phase === "cycle_complete") && (
         <LiveDashboard
           status={status}
+          polls={polls}
           actingUserId={actingUserId}
           refresh={refresh}
         />
       )}
+
+      {/* Rules + chat available in every phase so the assistant is never buried. */}
+      {status.group.phase !== "live" &&
+        status.group.phase !== "cycle_complete" && (
+          <>
+            <RulesPanel status={status} />
+            <ChatPanel groupId={groupId} userId={actingUserId} />
+          </>
+        )}
 
       {/* Dev-only: act as any member to walk every role from one screen. */}
       <div className="mt-6 rounded-xl border border-dashed border-neutral-300 p-3">

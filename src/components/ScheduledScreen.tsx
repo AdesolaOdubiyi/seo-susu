@@ -36,6 +36,12 @@ export function ScheduledScreen({
           <h1 className="text-2xl font-bold">{group.name}</h1>
           <PhaseBadge phase={group.phase} />
         </div>
+        <p className="mt-1 text-xs text-neutral-400">
+          Invite code{" "}
+          <span className="font-mono tracking-wider text-neutral-600">
+            {group.inviteCode}
+          </span>
+        </p>
       </header>
 
       <section className="rounded-2xl bg-neutral-900 p-6 text-center text-white">

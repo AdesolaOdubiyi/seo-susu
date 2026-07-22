@@ -58,14 +58,14 @@ export function ScheduledScreen({
         </p>
       </section>
 
-      <div className="mt-6 rounded-xl border border-dashed border-neutral-300 p-3 text-center">
-        <p className="mb-2 text-xs font-medium text-neutral-400">
-          Dev · skip the wait
+      <div className="mt-6 rounded-2xl border border-dashed border-[var(--line)] p-3 text-center">
+        <p className="mb-2 text-xs font-medium text-[var(--muted)]">
+          For demos
         </p>
         <button
           onClick={goLiveNow}
           disabled={busy}
-          className="rounded-lg bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-700 disabled:opacity-50"
+          className="btn-press rounded-xl bg-[var(--surface-2)] px-4 py-2 text-sm font-medium text-[var(--ink)] disabled:opacity-50"
         >
           {busy ? "Starting…" : "Start Round 1 now"}
         </button>

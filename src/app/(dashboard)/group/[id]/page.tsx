@@ -117,10 +117,10 @@ export default function GroupPage({
           </>
         )}
 
-      {/* Dev-only: act as any member to walk every role from one screen. */}
-      <div className="mt-6 rounded-xl border border-dashed border-neutral-300 p-3">
-        <p className="mb-2 text-xs font-medium text-neutral-400">
-          Dev · acting as
+      {/* Demo helper: switch who you act as on this device. */}
+      <div className="mt-6 rounded-2xl border border-dashed border-[var(--line)] bg-[var(--surface)] p-3">
+        <p className="mb-2 text-xs font-medium text-[var(--muted)]">
+          Viewing as
         </p>
         <div className="flex flex-wrap gap-2">
           {status.members.map((m) => (

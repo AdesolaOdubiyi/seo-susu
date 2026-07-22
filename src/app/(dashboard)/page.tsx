@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getMemberships, type Membership } from "@/lib/api/session";
+import { getMemberships, saveMembership, type Membership } from "@/lib/api/session";
 
 export default function HomePage() {
   const router = useRouter();
@@ -21,27 +21,41 @@ export default function HomePage() {
     try {
       const res = await fetch("/api/dev/seed", { method: "POST" });
       const data = await res.json();
-      if (res.ok) router.push(`/group/${data.groupId}`);
+      if (!res.ok) return;
+      const first = data.members?.[0] as
+        | { userId: number; name: string }
+        | undefined;
+      if (first) {
+        saveMembership({
+          groupId: data.groupId,
+          userId: first.userId,
+          name: first.name,
+          groupName: "Sunday Savers",
+        });
+      }
+      router.push(`/group/${data.groupId}`);
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <main className="mx-auto max-w-md p-6">
-      <header className="mt-6">
-        <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
+    <main className="mx-auto max-w-md px-6 py-10">
+      <header>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
           Home
         </p>
-        <h1 className="mt-1 text-3xl font-bold">Susu</h1>
-        <p className="mt-1 text-neutral-500">
+        <h1 className="mt-2 font-[family-name:var(--font-display)] text-4xl font-semibold tracking-tight text-[var(--ink)]">
+          Susu
+        </h1>
+        <p className="mt-2 text-[var(--ink-soft)]">
           Save together. Take turns getting the pot.
         </p>
       </header>
 
       {memberships.length > 0 && (
-        <section className="mt-8">
-          <h2 className="mb-2 text-sm font-semibold text-neutral-500">
+        <section className="mt-10">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">
             Your groups
           </h2>
           <ul className="space-y-2">
@@ -49,15 +63,17 @@ export default function HomePage() {
               <li key={m.groupId}>
                 <Link
                   href={`/group/${m.groupId}`}
-                  className="flex items-center justify-between rounded-xl border border-neutral-200 p-4 hover:bg-neutral-50"
+                  className="panel-hover flex items-center justify-between rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4"
                 >
                   <span>
-                    <span className="font-semibold">{m.groupName}</span>
-                    <span className="block text-xs text-neutral-500">
+                    <span className="font-semibold text-[var(--ink)]">
+                      {m.groupName}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-[var(--muted)]">
                       you are {m.name}
                     </span>
                   </span>
-                  <span className="text-neutral-300">›</span>
+                  <span className="text-[var(--muted)]">›</span>
                 </Link>
               </li>
             ))}
@@ -65,30 +81,32 @@ export default function HomePage() {
         </section>
       )}
 
-      <section className="mt-8 space-y-3">
+      <section className="mt-10 space-y-3">
         <Link
           href="/create"
-          className="block w-full rounded-xl bg-neutral-900 py-3.5 text-center font-semibold text-white"
+          className="btn-press block w-full rounded-2xl bg-[var(--accent)] py-3.5 text-center font-semibold text-white"
         >
           Start a susu
         </Link>
         <Link
           href="/join"
-          className="block w-full rounded-xl border border-neutral-300 py-3.5 text-center font-semibold"
+          className="btn-press block w-full rounded-2xl border border-[var(--line)] bg-[var(--surface)] py-3.5 text-center font-semibold text-[var(--ink)]"
         >
           Join with a code
         </Link>
       </section>
 
-      <div className="mt-8 border-t border-neutral-200 pt-4 text-center">
-        <button
-          onClick={loadDemo}
-          disabled={busy}
-          className="text-xs font-medium text-neutral-400 underline disabled:opacity-50"
-        >
-          {busy ? "Setting up…" : "Dev · load a live demo group"}
-        </button>
-      </div>
+      {process.env.NODE_ENV !== "production" && (
+        <div className="mt-10 border-t border-[var(--line)] pt-4 text-center">
+          <button
+            onClick={loadDemo}
+            disabled={busy}
+            className="text-xs font-medium text-[var(--muted)] underline disabled:opacity-50"
+          >
+            {busy ? "Setting up…" : "Load a live demo group"}
+          </button>
+        </div>
+      )}
     </main>
   );
 }

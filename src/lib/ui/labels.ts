@@ -1,47 +1,59 @@
 /** Plain-language labels for anything users see. Keep codes out of the UI. */
 
+const PHASE_LABELS = {
+  setup: "Setting up",
+  awaiting_signatures: "Waiting for signatures",
+  scheduled: "Starting soon",
+  live: "In progress",
+  cycle_complete: "Cycle finished",
+} as const;
+
+const AGREEMENT_STATUS_LABELS = {
+  awaiting_signatures: "Waiting for signatures",
+  active: "Signed and active",
+  superseded: "Replaced by a newer version",
+  expired: "Expired",
+} as const;
+
+const POLL_STATUS_LABELS = {
+  open: "Waiting for votes",
+  approved: "Approved",
+  rejected: "Not approved",
+  expired: "Voting ended",
+} as const;
+
+const POLL_TYPE_LABELS = {
+  contribution_amount: "Contribution amount",
+  schedule: "How often we contribute",
+  rotation_order: "Payout order",
+  round1_start_date: "Round 1 start date",
+  add_member: "Add a member",
+  remove_member: "Remove a member",
+  start_cycle: "Start the next cycle",
+} as const;
+
 export function phaseLabel(phase: string): string {
-  const map: Record<string, string> = {
-    setup: "Setting up",
-    awaiting_signatures: "Waiting for signatures",
-    scheduled: "Starting soon",
-    live: "In progress",
-    cycle_complete: "Cycle finished",
-  };
-  return map[phase] ?? "Updating";
+  return PHASE_LABELS[phase as keyof typeof PHASE_LABELS] ?? "Updating";
 }
 
 export function agreementStatusLabel(status: string): string {
-  const map: Record<string, string> = {
-    awaiting_signatures: "Waiting for signatures",
-    active: "Signed and active",
-    superseded: "Replaced by a newer version",
-    expired: "Expired",
-  };
-  return map[status] ?? "Updating";
+  return (
+    AGREEMENT_STATUS_LABELS[status as keyof typeof AGREEMENT_STATUS_LABELS] ??
+    "Updating"
+  );
 }
 
 export function pollStatusLabel(status: string): string {
-  const map: Record<string, string> = {
-    open: "Waiting for votes",
-    approved: "Approved",
-    rejected: "Not approved",
-    expired: "Voting ended",
-  };
-  return map[status] ?? "Updating";
+  return (
+    POLL_STATUS_LABELS[status as keyof typeof POLL_STATUS_LABELS] ?? "Updating"
+  );
 }
 
 export function pollTypeLabel(changeType: string): string {
-  const map: Record<string, string> = {
-    contribution_amount: "Contribution amount",
-    schedule: "How often we contribute",
-    rotation_order: "Payout order",
-    round1_start_date: "Round 1 start date",
-    add_member: "Add a member",
-    remove_member: "Remove a member",
-    start_cycle: "Start the next cycle",
-  };
-  return map[changeType] ?? "A group decision";
+  return (
+    POLL_TYPE_LABELS[changeType as keyof typeof POLL_TYPE_LABELS] ??
+    "A group decision"
+  );
 }
 
 /** Map settle / payout reason codes to calm plain English. */
@@ -66,6 +78,9 @@ export function payoutPausedMessage(reason: string | null | undefined): string {
   }
 }
 
-export function memberDisplayName(name: string | undefined, fallback = "A member"): string {
+export function memberDisplayName(
+  name: string | undefined,
+  fallback = "A member",
+): string {
   return name?.trim() || fallback;
 }

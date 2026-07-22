@@ -24,7 +24,7 @@ export async function parseJsonBody(req: Request): Promise<Record<string, unknow
 export function requireString(body: Record<string, unknown>, field: string): string {
   const value = body[field];
   if (typeof value !== "string" || value.trim() === "") {
-    throw new ApiError(`"${field}" is required and must be a non-empty string`);
+    throw new ApiError(`${field} is required.`);
   }
   return value.trim();
 }
@@ -32,7 +32,7 @@ export function requireString(body: Record<string, unknown>, field: string): str
 export function requireNumber(body: Record<string, unknown>, field: string): number {
   const value = body[field];
   if (typeof value !== "number" || !Number.isFinite(value)) {
-    throw new ApiError(`"${field}" is required and must be a number`);
+    throw new ApiError(`${field} must be a number.`);
   }
   return value;
 }
@@ -40,7 +40,7 @@ export function requireNumber(body: Record<string, unknown>, field: string): num
 export function parseId(raw: string, label = "id"): number {
   const id = Number(raw);
   if (!Number.isInteger(id) || id <= 0) {
-    throw new ApiError(`Invalid ${label}`);
+    throw new ApiError(`Invalid ${label}.`);
   }
   return id;
 }

@@ -1,8 +1,9 @@
-// Demo-simple auth. A "membership" is one identity in one group — because the
-// backend creates a fresh user row per group join, a person in two groups has
-// two userIds. We track the memberships this device has created/joined in
-// localStorage; no cookies or JWTs (see docs/CHANGE_RULES.md: name + invite
-// code is the MVP auth).
+// Device-local membership store for the MVP.
+//
+// Joining a group creates a fresh user row, so one person in two groups has
+// two userIds. This module tracks identities created or joined on this device
+// in localStorage. No cookies or JWTs. Auth for the MVP is name + invite code
+// (docs/CHANGE_RULES.md).
 
 export interface Membership {
   groupId: number;
@@ -13,13 +14,31 @@ export interface Membership {
 
 const KEY = "susu.memberships";
 
-export function getMemberships(): Membership[] {
-  if (typeof window === "undefined") return [];
+function parseMemberships(raw: string | null): Membership[] {
+  if (!raw) return [];
   try {
-    return JSON.parse(window.localStorage.getItem(KEY) ?? "[]") as Membership[];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(isMembership);
   } catch {
     return [];
   }
+}
+
+function isMembership(value: unknown): value is Membership {
+  if (typeof value !== "object" || value === null) return false;
+  const row = value as Record<string, unknown>;
+  return (
+    typeof row.groupId === "number" &&
+    typeof row.userId === "number" &&
+    typeof row.name === "string" &&
+    typeof row.groupName === "string"
+  );
+}
+
+export function getMemberships(): Membership[] {
+  if (typeof window === "undefined") return [];
+  return parseMemberships(window.localStorage.getItem(KEY));
 }
 
 export function getMembership(groupId: number): Membership | null {

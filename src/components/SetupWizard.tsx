@@ -47,7 +47,26 @@ export function SetupWizard({
   const [amount, setAmount] = useState("50");
   const [schedule, setSchedule] = useState("weekly");
   const [startDate, setStartDate] = useState(defaultStartDate());
-  const [order, setOrder] = useState<number[]>(members.map((m) => m.userId));
+  const [order, setOrder] = useState<number[]>(() =>
+    members.map((m) => m.userId),
+  );
+
+  // People keep joining while setup is open, so the proposed order has to
+  // follow the live roster. A useState initializer only runs once, which left
+  // whoever opened this screen first (usually the creator, alone) stuck
+  // proposing an order containing just themselves — which the backend rejects.
+  // Reconcile during render: keep the current arrangement for members who are
+  // still here, append newcomers, drop anyone who left.
+  const memberIds = members.map((m) => m.userId);
+  const memberKey = memberIds.join(",");
+  const [syncedMemberKey, setSyncedMemberKey] = useState(memberKey);
+  if (syncedMemberKey !== memberKey) {
+    setSyncedMemberKey(memberKey);
+    setOrder((prev) => [
+      ...prev.filter((id) => memberIds.includes(id)),
+      ...memberIds.filter((id) => !prev.includes(id)),
+    ]);
+  }
 
   const approved = useMemo(
     () =>

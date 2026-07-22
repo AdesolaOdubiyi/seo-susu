@@ -1,21 +1,16 @@
-const PHASE_LABEL: Record<string, string> = {
-  setup: "Setting up",
-  awaiting_signatures: "Awaiting signatures",
-  scheduled: "Starting soon",
-  live: "Live",
-  cycle_complete: "Cycle complete",
-};
+import { phaseLabel } from "@/lib/ui/labels";
 
 export function PhaseBadge({ phase }: { phase: string }) {
+  const live = phase === "live";
   return (
     <span
       className={`rounded-full px-3 py-1 text-xs font-medium ${
-        phase === "live"
-          ? "bg-green-100 text-green-800"
-          : "bg-neutral-100 text-neutral-600"
+        live
+          ? "bg-[var(--accent-soft)] text-[var(--accent-deep)]"
+          : "bg-[var(--surface-2)] text-[var(--muted)]"
       }`}
     >
-      {PHASE_LABEL[phase] ?? phase}
+      {phaseLabel(phase)}
     </span>
   );
 }

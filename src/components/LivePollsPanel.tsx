@@ -5,6 +5,11 @@ import type { GroupStatus } from "@/lib/db/contributions";
 import type { PollWithVotes } from "@/lib/db/polls";
 import type { ChangeType } from "@/lib/db/types";
 import { createPoll, votePoll } from "@/lib/api/client";
+import {
+  memberDisplayName,
+  pollStatusLabel,
+  pollTypeLabel,
+} from "@/lib/ui/labels";
 
 /** Live-phase polls: amount, schedule, add/remove member, start next cycle. */
 export function LivePollsPanel({
@@ -44,7 +49,7 @@ export function LivePollsPanel({
   );
 
   const nameOf = (id: number) =>
-    members.find((m) => m.userId === id)?.name ?? `#${id}`;
+    memberDisplayName(members.find((m) => m.userId === id)?.name);
 
   const act = async (fn: () => Promise<unknown>) => {
     if (!actingUserId) return;
@@ -76,20 +81,24 @@ export function LivePollsPanel({
       const d = JSON.parse(p.change_details) as Record<string, unknown>;
       switch (p.change_type) {
         case "contribution_amount":
-          return `Amount → $${d.amount}`;
+          return `Contribution amount → $${d.amount}`;
         case "schedule":
-          return `Cadence → ${d.schedule}`;
+          return `How often → ${d.schedule}`;
         case "add_member":
           return `Add ${d.userName}`;
         case "remove_member":
-          return `Remove ${nameOf(Number(d.targetUserId))} · $${d.newAmount}`;
+          return `Remove ${nameOf(Number(d.targetUserId))} · new amount $${d.newAmount}`;
         case "start_cycle":
-          return "Start next cycle";
+          return "Start the next cycle";
+        case "rotation_order":
+          return "Payout order";
+        case "round1_start_date":
+          return "Round 1 start date";
         default:
-          return p.change_type;
+          return pollTypeLabel(p.change_type);
       }
     } catch {
-      return p.change_type;
+      return pollTypeLabel(p.change_type);
     }
   };
 
@@ -142,7 +151,7 @@ export function LivePollsPanel({
         {(
           [
             ["contribution_amount", "Change amount"],
-            ["schedule", "Change cadence"],
+            ["schedule", "Change how often"],
             ["add_member", "Add member"],
             ["remove_member", "Remove member"],
           ] as const
@@ -289,7 +298,7 @@ export function LivePollsPanel({
           <ul className="mt-1 space-y-1 text-xs text-neutral-500">
             {recentClosed.map((p) => (
               <li key={p.id}>
-                {summarize(p)} · {p.status}
+                {summarize(p)} · {pollStatusLabel(p.status)}
               </li>
             ))}
           </ul>

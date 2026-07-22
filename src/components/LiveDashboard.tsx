@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { GroupStatus } from "@/lib/db/contributions";
 import type { PollWithVotes } from "@/lib/db/polls";
 import { contribute, leaveGroup } from "@/lib/api/client";
+import { payoutPausedMessage } from "@/lib/ui/labels";
 import { PhaseBadge } from "./PhaseBadge";
 import { LivePollsPanel } from "./LivePollsPanel";
 import { RulesPanel } from "./RulesPanel";
@@ -87,44 +88,52 @@ export function LiveDashboard({
           <h1 className="text-2xl font-bold">{group.name}</h1>
           <PhaseBadge phase={group.phase} />
         </div>
-        <p className="mt-1 text-sm text-neutral-500">
+        <p className="mt-1 text-sm text-[var(--muted)]">
           Cycle {group.currentCycle} · Round {group.currentRound} · $
-          {group.contributionAmount}/{group.schedule}
+          <span className="tabular-nums">{group.contributionAmount}</span>/
+          {group.schedule === "biweekly"
+            ? "every 2 weeks"
+            : group.schedule || "—"}
         </p>
-        <p className="mt-1 text-xs text-neutral-400">
+        <p className="mt-1 text-xs text-[var(--muted)]">
           Invite code{" "}
-          <span className="font-mono tracking-wider text-neutral-600">
+          <span className="font-mono tracking-wider text-[var(--ink)]">
             {group.inviteCode}
           </span>
         </p>
       </header>
 
-      <section className="mb-4 rounded-2xl bg-neutral-900 p-5 text-white">
-        <p className="text-sm text-neutral-400">This round&apos;s payout</p>
+      <section className="mb-4 rounded-2xl bg-[var(--ink)] p-5 text-[var(--paper)]">
+        <p className="text-sm text-white/60">This round&apos;s payout</p>
         {currentRecipient ? (
           <>
-            <p className="mt-1 text-2xl font-bold">{currentRecipient.name}</p>
-            <p className="mt-1 text-lg">receives ${round.potAmount}</p>
+            <p className="mt-1 font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight">
+              {currentRecipient.name}
+            </p>
+            <p className="mt-1 text-lg tabular-nums">
+              receives ${round.potAmount}
+            </p>
           </>
         ) : (
-          <p className="mt-1 text-2xl font-bold">Cycle complete</p>
+          <p className="mt-1 font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight">
+            Cycle finished
+          </p>
         )}
         <div className="mt-4 flex items-center justify-between gap-3 text-sm">
-          <span className="text-neutral-400">
-            {round.contributed} of {round.expected} paid this round
+          <span className="text-white/60">
+            <span className="tabular-nums">{round.contributed}</span> of{" "}
+            <span className="tabular-nums">{round.expected}</span> paid this
+            round
           </span>
-          <span
-            className={round.stalled ? "text-amber-400" : "text-neutral-300"}
-          >
+          <span className={round.stalled ? "text-amber-300" : "text-white/70"}>
             {round.stalled
-              ? "Stalled — payment overdue"
+              ? "Overdue — still waiting on contributions"
               : `Due in ${round.daysUntilDeadline} day(s)`}
           </span>
         </div>
         {round.payoutBlocked && (
-          <p className="mt-2 rounded-lg bg-amber-500/20 p-2 text-xs text-amber-200">
-            Payout paused: {round.payoutBlockedReason}
-            {round.openPolls > 0 ? ` · ${round.openPolls} open poll(s)` : ""}
+          <p className="mt-2 rounded-lg bg-amber-500/20 p-2 text-xs text-amber-100">
+            {payoutPausedMessage(round.payoutBlockedReason)}
           </p>
         )}
       </section>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { GroupStatus } from "@/lib/db/contributions";
 import { getAgreement } from "@/lib/api/client";
+import { agreementStatusLabel, phaseLabel } from "@/lib/ui/labels";
 
 /** Current rules & signed agreement for this group. */
 export function RulesPanel({ status }: { status: GroupStatus }) {
@@ -37,7 +38,7 @@ export function RulesPanel({ status }: { status: GroupStatus }) {
     .sort((a, b) => a.rotationPosition - b.rotationPosition);
 
   return (
-    <section className="mt-6 rounded-2xl border border-neutral-200">
+    <section className="mt-6 rounded-2xl border border-[var(--line)] bg-[var(--surface)]">
       <button
         type="button"
         onClick={() => {
@@ -47,61 +48,69 @@ export function RulesPanel({ status }: { status: GroupStatus }) {
         className="flex w-full items-center justify-between px-4 py-3 text-left"
       >
         <div>
-          <h2 className="font-semibold">Rules & agreement</h2>
-          <p className="text-xs text-neutral-500">
+          <h2 className="font-semibold text-[var(--ink)]">Rules & agreement</h2>
+          <p className="text-xs text-[var(--muted)]">
             {activeAgreement
-              ? `v${activeAgreement.version} · ${activeAgreement.status}`
+              ? `Version ${activeAgreement.version} · ${agreementStatusLabel(activeAgreement.status)}`
               : "No signed agreement yet"}
           </p>
         </div>
-        <span className="text-neutral-400">{open ? "▾" : "›"}</span>
+        <span className="text-[var(--muted)]">{open ? "▾" : "›"}</span>
       </button>
 
       {open && (
-        <div className="space-y-3 border-t border-neutral-200 p-4">
+        <div className="space-y-3 border-t border-[var(--line)] p-4">
           <dl className="grid grid-cols-2 gap-2 text-sm">
             <div>
-              <dt className="text-xs text-neutral-400">Amount</dt>
-              <dd className="font-medium">${group.contributionAmount}</dd>
+              <dt className="text-xs text-[var(--muted)]">Amount</dt>
+              <dd className="font-medium tabular-nums">
+                ${group.contributionAmount}
+              </dd>
             </div>
             <div>
-              <dt className="text-xs text-neutral-400">Cadence</dt>
-              <dd className="font-medium">{group.schedule || "—"}</dd>
+              <dt className="text-xs text-[var(--muted)]">How often</dt>
+              <dd className="font-medium">
+                {group.schedule === "biweekly"
+                  ? "Every 2 weeks"
+                  : group.schedule || "—"}
+              </dd>
             </div>
             <div>
-              <dt className="text-xs text-neutral-400">Invite code</dt>
+              <dt className="text-xs text-[var(--muted)]">Invite code</dt>
               <dd className="font-mono font-medium tracking-wider">
                 {group.inviteCode}
               </dd>
             </div>
             <div>
-              <dt className="text-xs text-neutral-400">Phase</dt>
-              <dd className="font-medium">{group.phase}</dd>
+              <dt className="text-xs text-[var(--muted)]">Stage</dt>
+              <dd className="font-medium">{phaseLabel(group.phase)}</dd>
             </div>
           </dl>
 
           <div>
-            <p className="text-xs font-medium text-neutral-400">Payout order</p>
+            <p className="text-xs font-medium text-[var(--muted)]">
+              Payout order
+            </p>
             <p className="mt-1 text-sm">
               {order.map((m) => m.name).join(" → ") || "—"}
             </p>
           </div>
 
           {activeAgreement?.renderedText && (
-            <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap rounded-xl bg-neutral-50 p-3 font-sans text-xs text-neutral-700">
+            <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap rounded-xl bg-[var(--surface-2)] p-3 font-sans text-xs text-[var(--ink-soft)]">
               {activeAgreement.renderedText}
             </pre>
           )}
 
           {history.length > 0 && (
             <div>
-              <p className="mb-1 text-xs font-medium text-neutral-400">
-                Version history
+              <p className="mb-1 text-xs font-medium text-[var(--muted)]">
+                Earlier versions
               </p>
-              <ul className="space-y-1 text-xs text-neutral-600">
+              <ul className="space-y-1 text-xs text-[var(--ink-soft)]">
                 {history.map((h) => (
                   <li key={h.id}>
-                    v{h.version} · {h.status} ·{" "}
+                    Version {h.version} · {agreementStatusLabel(h.status)} ·{" "}
                     {new Date(h.generated_at).toLocaleDateString()}
                   </li>
                 ))}

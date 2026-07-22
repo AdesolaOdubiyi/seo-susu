@@ -15,7 +15,7 @@ type TermKey =
 
 const TERM_LABEL: Record<TermKey, string> = {
   contribution_amount: "Contribution amount",
-  schedule: "How often (cadence)",
+  schedule: "How often you contribute",
   rotation_order: "Payout order",
   round1_start_date: "Round 1 start date",
 };
@@ -62,7 +62,7 @@ export function SetupWizard({
   }, [polls]);
 
   const nameOf = (userId: number) =>
-    members.find((m) => m.userId === userId)?.name ?? `#${userId}`;
+    members.find((m) => m.userId === userId)?.name ?? "A member";
 
   const act = async (fn: () => Promise<unknown>) => {
     setBusy(true);

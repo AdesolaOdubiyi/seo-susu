@@ -40,13 +40,23 @@ body {
 
 body {
   min-height: 100%;
-  background:
-    radial-gradient(1200px 600px at 10% -10%, #e9f0ec 0%, transparent 55%),
-    radial-gradient(900px 500px at 100% 0%, #f1efe8 0%, transparent 45%),
-    var(--paper);
+  background: var(--paper);
   color: var(--ink);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Viewport-fixed atmosphere so green accents never tile on tall pages. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #e9f0ec 0%, transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, #f1efe8 0%, transparent 45%);
+  background-repeat: no-repeat;
 }
 
 a {
@@ -112,5 +122,9 @@ a {
 
   body {
     background: var(--paper);
+  }
+
+  body::before {
+    background: none;
   }
 }

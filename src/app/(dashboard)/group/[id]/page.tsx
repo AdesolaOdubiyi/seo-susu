@@ -65,7 +65,9 @@ export default function GroupPage({
     return (
       <main className="mx-auto max-w-md p-6">
         <BackLink href="/" label="All groups" />
-        <p className="mt-4 rounded-lg bg-red-50 p-4 text-red-700">{error}</p>
+        <p className="mt-4 rounded-lg bg-[var(--warn-soft)] p-4 text-[var(--warn)]">
+          {error}
+        </p>
       </main>
     );
   }
@@ -73,13 +75,18 @@ export default function GroupPage({
     return (
       <main className="mx-auto max-w-md p-6">
         <BackLink href="/" label="All groups" />
-        <p className="mt-8 text-center text-neutral-500">Loading…</p>
+        <p className="mt-8 text-center text-[var(--muted)]">Loading…</p>
       </main>
     );
   }
 
+  const isLive =
+    status.group.phase === "live" || status.group.phase === "cycle_complete";
+
   return (
-    <main className="mx-auto max-w-md p-4 pb-24">
+    <main
+      className={`mx-auto p-4 pb-24 ${isLive ? "max-w-5xl" : "max-w-md"}`}
+    >
       <div className="mb-3">
         <BackLink href="/" label="All groups" />
       </div>
@@ -92,51 +99,52 @@ export default function GroupPage({
         />
       )}
       {status.group.phase === "awaiting_signatures" && (
-        <SignScreen status={status} actingUserId={actingUserId} refresh={refresh} />
-      )}
-      {status.group.phase === "scheduled" && (
-        <ScheduledScreen status={status} refresh={refresh} />
-      )}
-      {(status.group.phase === "live" ||
-        status.group.phase === "cycle_complete") && (
-        <LiveDashboard
+        <SignScreen
           status={status}
-          polls={polls}
           actingUserId={actingUserId}
           refresh={refresh}
         />
       )}
+      {status.group.phase === "scheduled" && (
+        <ScheduledScreen status={status} refresh={refresh} />
+      )}
+      {isLive && (
+        <LiveDashboard
+          status={status}
+          polls={polls}
+          actingUserId={actingUserId}
+          setActingUserId={setActingUserId}
+          refresh={refresh}
+        />
+      )}
 
-      {/* Rules and chat on non-live phases; live dashboard embeds them. */}
-      {status.group.phase !== "live" &&
-        status.group.phase !== "cycle_complete" && (
-          <>
-            <RulesPanel status={status} />
-            <ChatPanel groupId={groupId} userId={actingUserId} />
-          </>
-        )}
-
-      {/* Switch the identity this device is using for this group. */}
-      <div className="mt-6 rounded-2xl border border-dashed border-[var(--line)] bg-[var(--surface)] p-3">
-        <p className="mb-2 text-xs font-medium text-[var(--muted)]">
-          Viewing as
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {status.members.map((m) => (
-            <button
-              key={m.userId}
-              onClick={() => setActingUserId(m.userId)}
-              className={`rounded-full px-3 py-1 text-sm ${
-                m.userId === actingUserId
-                  ? "bg-neutral-900 text-white"
-                  : "bg-neutral-100 text-neutral-600"
-              }`}
-            >
-              {m.name}
-            </button>
-          ))}
-        </div>
-      </div>
+      {!isLive && (
+        <>
+          <RulesPanel status={status} />
+          <ChatPanel groupId={groupId} userId={actingUserId} />
+          <div className="mt-6 rounded-2xl border border-dashed border-[var(--line)] bg-[var(--surface)] p-3">
+            <p className="mb-2 text-xs font-medium text-[var(--muted)]">
+              Viewing as
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {status.members.map((m) => (
+                <button
+                  key={m.userId}
+                  type="button"
+                  onClick={() => setActingUserId(m.userId)}
+                  className={`rounded-full px-3 py-1 text-sm ${
+                    m.userId === actingUserId
+                      ? "bg-[var(--ink)] text-[var(--paper)]"
+                      : "bg-[var(--surface-2)] text-[var(--ink-soft)]"
+                  }`}
+                >
+                  {m.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </main>
   );
 }

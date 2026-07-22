@@ -8,6 +8,29 @@ import { getErrorMessage } from "@/lib/ui/errors";
 
 type SeedMember = { userId: number; name: string };
 
+const FEATURES = [
+  {
+    title: "Same amount, same order, every round",
+    body: "Everyone puts in on the same schedule. Each round the pot goes to the next person in line.",
+  },
+  {
+    title: "Nothing changes without everyone agreeing",
+    body: "Amount, schedule, who's in. Anyone can propose a change. It only sticks if every active member says yes.",
+  },
+  {
+    title: "Mark it sent, see who's caught up",
+    body: "Contribute with a tap. See who's paid and who's still owed before the payout goes out.",
+  },
+  {
+    title: "A rules doc everyone signed",
+    body: "Terms get written down once the group agrees, so there's a clear record to point to later.",
+  },
+  {
+    title: "Ask instead of digging",
+    body: "Questions like who's next or why a payout is paused use your group's real status and rules.",
+  },
+] as const;
+
 function isSeedMember(value: unknown): value is SeedMember {
   if (typeof value !== "object" || value === null) return false;
   const row = value as Record<string, unknown>;
@@ -69,21 +92,52 @@ export default function HomePage() {
   };
 
   return (
-    <main className="mx-auto max-w-md px-6 py-10">
-      <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-          Home
-        </p>
-        <h1 className="mt-2 font-[family-name:var(--font-display)] text-4xl font-semibold tracking-tight text-[var(--ink)]">
+    <main>
+      {/* Hero: one composition — brand first, then meaning, then CTAs */}
+      <section className="mx-auto flex min-h-[min(100vh,640px)] max-w-2xl flex-col justify-center px-6 py-14">
+        <h1 className="font-[family-name:var(--font-display)] text-5xl font-semibold tracking-tight text-[var(--ink)] sm:text-6xl">
           Susu
         </h1>
-        <p className="mt-2 text-[var(--ink-soft)]">
+        <p className="mt-3 text-lg text-[var(--ink-soft)] sm:text-xl">
           Save together. Take turns getting the pot.
         </p>
-      </header>
+        <p className="mt-3 max-w-md text-sm leading-relaxed text-[var(--muted)]">
+          Pool regular contributions with people you trust. Everyone receives
+          the full pot once, in turn.
+        </p>
+
+        {/* Single atmosphere cue: ink payout silhouette */}
+        <div
+          className="mt-8 max-w-sm rounded-2xl bg-[var(--ink)] p-5 text-[var(--paper)]"
+          aria-hidden="true"
+        >
+          <p className="text-sm text-white/55">This round&apos;s payout</p>
+          <p className="mt-1 font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight">
+            Your turn
+          </p>
+          <p className="mt-1 text-sm text-white/65">
+            3 of 5 paid · due in 2 days
+          </p>
+        </div>
+
+        <div className="mt-8 flex max-w-sm flex-col gap-3 sm:flex-row">
+          <Link
+            href="/create"
+            className="btn-press flex-1 rounded-2xl bg-[var(--accent)] py-3.5 text-center font-semibold text-white"
+          >
+            Start a susu
+          </Link>
+          <Link
+            href="/join"
+            className="btn-press flex-1 rounded-2xl border border-[var(--line)] bg-[var(--surface)] py-3.5 text-center font-semibold text-[var(--ink)]"
+          >
+            Join with a code
+          </Link>
+        </div>
+      </section>
 
       {memberships.length > 0 && (
-        <section className="mt-10">
+        <section className="mx-auto max-w-2xl px-6 pb-10">
           <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">
             Your groups
           </h2>
@@ -110,23 +164,33 @@ export default function HomePage() {
         </section>
       )}
 
-      <section className="mt-10 space-y-3">
-        <Link
-          href="/create"
-          className="btn-press block w-full rounded-2xl bg-[var(--accent)] py-3.5 text-center font-semibold text-white"
-        >
-          Start a susu
-        </Link>
-        <Link
-          href="/join"
-          className="btn-press block w-full rounded-2xl border border-[var(--line)] bg-[var(--surface)] py-3.5 text-center font-semibold text-[var(--ink)]"
-        >
-          Join with a code
-        </Link>
+      <section className="border-t border-[var(--line)] bg-[var(--surface)]/60">
+        <div className="mx-auto max-w-2xl px-6 py-14">
+          <h2 className="font-[family-name:var(--font-display)] text-2xl font-semibold tracking-tight">
+            What you can do
+          </h2>
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            Built for a trusted circle. Not a bank.
+          </p>
+          <ul className="mt-8 space-y-6">
+            {FEATURES.map((f) => (
+              <li key={f.title}>
+                <h3 className="font-semibold text-[var(--ink)]">{f.title}</h3>
+                <p className="mt-1 text-sm leading-relaxed text-[var(--ink-soft)]">
+                  {f.body}
+                </p>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-10 text-xs leading-relaxed text-[var(--muted)]">
+            This version is for practice and tracking. It does not hold,
+            transfer, insure, or guarantee money.
+          </p>
+        </div>
       </section>
 
       {process.env.NODE_ENV !== "production" && (
-        <div className="mt-10 border-t border-[var(--line)] pt-4 text-center">
+        <div className="mx-auto max-w-2xl px-6 py-8 text-center">
           {error && (
             <p className="mb-2 text-xs text-[var(--warn)]">{error}</p>
           )}
@@ -137,6 +201,14 @@ export default function HomePage() {
           >
             {busy ? "Setting up…" : "Load a live demo group"}
           </button>
+          <p className="mt-3">
+            <Link
+              href="/prototypes"
+              className="text-xs font-medium text-[var(--accent)] underline"
+            >
+              Dashboard layout prototypes
+            </Link>
+          </p>
         </div>
       )}
     </main>

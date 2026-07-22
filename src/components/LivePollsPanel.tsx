@@ -18,11 +18,13 @@ export function LivePollsPanel({
   polls,
   actingUserId,
   refresh,
+  className = "mt-6 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4",
 }: {
   status: GroupStatus;
   polls: PollWithVotes[];
   actingUserId: number | null;
   refresh: () => Promise<void>;
+  className?: string;
 }) {
   const { group, members } = status;
   const [busy, setBusy] = useState(false);
@@ -104,9 +106,9 @@ export function LivePollsPanel({
   };
 
   return (
-    <section className="mt-6 rounded-2xl border border-neutral-200 p-4">
-      <h2 className="font-semibold">Polls</h2>
-      <p className="mt-0.5 text-xs text-neutral-500">
+    <section className={className}>
+      <h2 className="font-semibold text-[var(--ink)]">Polls</h2>
+      <p className="mt-0.5 text-xs text-[var(--muted)]">
         Changes need unanimous approval. Open polls pause payouts.
       </p>
 

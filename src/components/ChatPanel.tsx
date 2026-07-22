@@ -14,9 +14,11 @@ type Message = {
 export function ChatPanel({
   groupId,
   userId,
+  embedded = false,
 }: {
   groupId: number;
   userId: number | null;
+  embedded?: boolean;
 }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState("");
@@ -64,8 +66,13 @@ export function ChatPanel({
   };
 
   return (
-    <section className="mt-6 rounded-2xl border border-[var(--line)] bg-[var(--surface)]">
-      <header className="border-b border-[var(--line)] px-4 py-3">
+    <section
+      className={
+        embedded
+          ? "rounded-2xl border border-[var(--line)] bg-[var(--surface)]"
+          : "mt-6 rounded-2xl border border-[var(--line)] bg-[var(--surface)]"
+      }
+    >      <header className="border-b border-[var(--line)] px-4 py-3">
         <h2 className="font-semibold text-[var(--ink)]">Ask Susu</h2>
         <p className="text-xs text-[var(--muted)]">
           Questions about this group&apos;s status and rules

@@ -8,15 +8,15 @@ import type {
   LiveGroupStatus,
 } from "./types";
 
-const SYSTEM_PREAMBLE = `You are Susu's group assistant. Talk like a helpful friend in the circle — clear, calm, and respectful. Many people using this app are adults who may be new to finance apps.
+const SYSTEM_PREAMBLE = `You are Susu's group assistant. Answer like a calm, clear friend in the circle. Many members are adults who are new to finance apps.
 
 How to answer:
-1. Prefer the latest group details over the signed agreement when they differ. If they differ, say the signed terms may be a little behind and use the latest details.
-2. Use the group agreement for amount, how often people contribute, payout order, and signed terms.
+1. Prefer the latest group details over the signed agreement when they differ. If they differ, say the signed terms may lag and use the latest details.
+2. Use the group agreement for amount, contribution schedule, payout order, and signed terms.
 3. Use the general notes only for “what is a susu” questions, or when group details are missing.
 4. This version is practice only. Never claim real bank transfers, insurance, or guaranteed collection.
 5. If you do not know, say so. Do not invent members, amounts, or vote results.
-6. Speak in short sentences. Use people's names. Never mention database fields, IDs, hashes, or codes like missing_contributions.
+6. Keep sentences short. Use people's names. Never mention database fields, IDs, hashes, or codes like missing_contributions.
 7. When talking about this group's terms, you can say “under this group's current agreement” and the version number if you have it.`;
 
 function formatLiveStatus(status: LiveGroupStatus): string {
@@ -57,7 +57,9 @@ function formatLiveStatus(status: LiveGroupStatus): string {
         const bits = [
           m.name,
           m.active ? "active" : "left",
-          m.payoutReceivedThisCycle ? "already received this cycle" : "not yet received this cycle",
+          m.payoutReceivedThisCycle
+            ? "already received this cycle"
+            : "not yet received this cycle",
         ];
         return `- ${bits.join("; ")}`;
       }),
@@ -118,7 +120,7 @@ function detectStale(
   }
   if (status.stalled) {
     notes.push(
-      "This round is overdue and some contributions are still missing. Prefer that over any older wording that assumes everything is on time.",
+      "This round is overdue and some contributions are still missing. Prefer that over older wording that assumes everything is on time.",
     );
   }
   if (status.payoutBlocked) {
@@ -127,10 +129,7 @@ function detectStale(
   return notes;
 }
 
-/**
- * Pack chat grounding with strict priority:
- * live status → active agreement → general rules.
- */
+/** Build chat grounding: live status, then agreement, then general rules. */
 export function buildChatContext(input: BuildChatContextInput): ChatContext {
   const general = input.generalRulesExcerpt ?? generalRulesExcerpt();
   const staleNotes = detectStale(input.status, input.activeAgreement);
